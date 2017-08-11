@@ -1,0 +1,7 @@
+* Make sure floating point precision can be changed to float32 without causing type errors
+
+* Make Vanilla, Bayesian optimization, and grid search presets
+
+* Write a stochastic gradient descent solver
+
+* Include block coordinate descent algorithm
