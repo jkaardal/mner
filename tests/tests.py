@@ -223,7 +223,7 @@ elif demo_type == 7:
     
     global_solver = mner.solvers.solvers.NNGlobalSearch
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, nn_global_search_solver=solver, nn_global_search_maxiter=30)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, nn_global_search_solver=solver, nn_global_search_maxiter=100)
 
 # optimize the model
 x, ftrain = opt.optimize()
@@ -246,8 +246,10 @@ Jsym = 0.5*(Jsym + Jsym.T)
 if matplotlib_loaded and show_plot:
     for i in range(6):
         plt.subplot(2, 6, i+1)
-        plt.imshow(np.reshape(u_GT[:,i], (ny, nx)), aspect='equal', interpolation='none')
+        cm = np.max(np.abs(u_GT[:,i]))
+        plt.imshow(np.reshape(u_GT[:,i], (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
     for i in range(6):
         plt.subplot(2, 6, i+7)
-        plt.imshow(np.reshape(u[:,i], (ny, nx)), aspect='equal', interpolation='none')
+        cm = np.max(np.abs(u[:,i]))
+        plt.imshow(np.reshape(u[:,i], (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
     plt.show()
