@@ -28,7 +28,7 @@ setup(name='mner',
           'pyipm',
       ],
       dependency_links=[
-          'https://github.com/jkaardal/GPyOpt-fork/tarball/devel#egg=GPyOpt-fork', # as of Aug. 10, 2017, this fork is necessary; optional, only needed for Bayesian optimization
+          'https://github.com/jkaardal/GPyOpt/tarball/devel#egg=GPyOpt', # as of Aug. 10, 2017, this fork is necessary; optional, only needed for Bayesian optimization
           'https://github.com/jkaardal/pyipm/tarball/master#egg=pyipm', # optional, only needed for interior-point solver
       ])
       
