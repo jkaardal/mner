@@ -20,7 +20,7 @@ into your terminal. If `setuptools` is installed, this should also install the d
     
 and the git repositories located at
 
-    http://github.com/jkaardal/GPyOpt-fork/
+    http://github.com/jkaardal/GPyOpt/
     http://github.com/jkaardal/pyipm/
     
 ## Creating and solving problems
