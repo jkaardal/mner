@@ -748,6 +748,7 @@ class BayesSearch(BaseSearch):
         self.verbosity = kwargs.get('bayes_search_verbosity', kwargs.get('verbosity', 1))
 
         self.converged = False
+        self.resume = False
 
 
     def init_points(self, N=4, **kwargs):
@@ -834,7 +835,7 @@ class BayesSearch(BaseSearch):
         # return cost of hidden objective function
         return self.fnew.reshape((1, 1))
 
-
+    
     def solve(self, x0=None, **kwargs):
         """ Find a feasible set of hyperparameters that minimize the objective
             function evaluated on the cross-validation set and return the
@@ -858,36 +859,42 @@ class BayesSearch(BaseSearch):
 
         # initialize solution vector and costs
         self.x = np.copy(x0)
-        self.ftrain = None
-        self.fcv = np.inf
+        
+        if not self.resume:
+            # if the optimization is not being resumed
+            self.ftrain = None
+            self.fcv = np.inf
 
-        # initialize regularization parameters
-        if not self.forget and self.storage_initialized and self.fcv_storage.size > 0:
-            hyperparams_red_init = np.zeros((self.fcv_storage.size, self.hyper_manager.red_index[-1]))
-            for i in range(self.fcv_storage.size):
-                hyperparams_red_init[i, :] = self.hyper_manager.build_red_vector_from_vector(self.hyperparam_storage[i, :], **kwargs)
-            fcv_init = np.copy(self.fcv_storage.reshape((self.fcv_storage.size, 1)))
-        else:
-            hyperparams_red_init = self.init_points(N=self.N_init, **kwargs)
-            fcv_init = None
-        hyperparams = self.hyper_manager.build_vector_from_red_vector(hyperparams_red_init[0, :], **kwargs)
+            # initialize regularization parameters
+            if not self.forget and self.storage_initialized and self.fcv_storage.size > 0:
+                hyperparams_red_init = np.zeros((self.fcv_storage.size, self.hyper_manager.red_index[-1]))
+                for i in range(self.fcv_storage.size):
+                    hyperparams_red_init[i, :] = self.hyper_manager.build_red_vector_from_vector(self.hyperparam_storage[i, :], **kwargs)
+                fcv_init = np.copy(self.fcv_storage.reshape((self.fcv_storage.size, 1)))
+            else:
+                hyperparams_red_init = self.init_points(N=self.N_init, **kwargs)
+                fcv_init = None
+            hyperparams = self.hyper_manager.build_vector_from_red_vector(hyperparams_red_init[0, :], **kwargs)
             
-        # initialize storage arrays, if applicable
-        if not self.forget and not self.storage_initialized:
-            self.init_storage(hyperparams, **kwargs)
+            # initialize storage arrays, if applicable
+            if not self.forget and not self.storage_initialized:
+                self.init_storage(hyperparams, **kwargs)
+
+            # initialize Bayesian optimization solver and populate the distribution
+            if self.verbosity >= 0:
+                print "Initializing Bayesian optimization."
+
+            self.bayes_opt = GPyOpt.methods.BayesianOptimization(f=self.hidden_cost, domain=self.hyper_manager.domain_f, constrains=self.hyper_manager.cons_f, X=hyperparams_red_init, Y=fcv_init, acquisition_type=self.acquisition_type, exact_feval=self.exact_feval, normalize_Y=self.normalize_Y, acquisition_jitter=self.acquisition_jitter, model_type=self.model_type, acquisition_weight=self.exploration_weight, cont_sampler=self.hyper_manager.sampler.samp_func, model_update_interval=self.model_update_interval)
+
+            # assume that if solve is called again, it is to resume the optimization
+            self.resume = True
 
         # initialize kernel
         if self.kernel is None:
             self.kernel = GPy.kern.Matern32(self.hyper_manager.red_index[-1], ARD=True)
 
-        # initialize Bayesian optimization solver and populate the distribution
-        if self.verbosity >= 0:
-            print "Initializing Bayesian optimization."
-
-        self.bayes_opt = GPyOpt.methods.BayesianOptimization(f=self.hidden_cost, domain=self.hyper_manager.domain_f, constrains=self.hyper_manager.cons_f, X=hyperparams_red_init, Y=fcv_init, acquisition_type=self.acquisition_type, exact_feval=self.exact_feval, normalize_Y=self.normalize_Y, acquisition_jitter=self.acquisition_jitter, model_type=self.model_type, acquisition_weight=self.exploration_weight, cont_sampler=self.hyper_manager.sampler.samp_func, model_update_interval=self.model_update_interval)
-
         # final configurations before commencing optimization
-        if self.kernel_variance_fixed is not None and self.kernal_variance_fixed is not False:
+        if self.kernel_variance_fixed is not None and self.kernel_variance_fixed is not False:
             self.bayes_opt.model.model.kern.variance.constrain_fixed(self.kernel_variance_fixed)
         if self.kernel_lengthscale_fixed is not None and self.kernel_lengthscale_fixed is not False:
             self.bayes_opt.model.model.kern.lengthscale.constrain_fixed(self.kernel_lengthscale_fixed)

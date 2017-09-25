@@ -116,7 +116,7 @@ def convert_dataset_logical_indices_to_array_indices(trainset, cvset, testset):
 
 
 # MNEr weight conversions
-def weights_to_vec(a=None, h=None, U=None, V=None, Q=None):
+def weights_to_vec(a=None, h=None, U=None, V=None, Q=None, **kwargs):
     # transform weight matrices into a weight vector
     
     if a is None:
@@ -126,7 +126,11 @@ def weights_to_vec(a=None, h=None, U=None, V=None, Q=None):
     if h is not None:
         ndim = h.size
     if U is not None:
-        assert V is not None
+        if "csigns" not in kwargs:
+            assert V is not None
+        else:
+            csigns = kwargs.get("csigns")
+            V = np.dot(U, np.diag(csigns.ravel()))
         if h is not None:
             assert U.shape[0] == ndim
         else:
@@ -153,7 +157,7 @@ def weights_to_vec(a=None, h=None, U=None, V=None, Q=None):
         return a.reshape((1,))
 
 
-def vec_to_weights(x, ndim, rank):
+def vec_to_weights(x, ndim, rank, **kwargs):
     # transform weight vector to weight matrices
     
     if x.size == 1:
@@ -170,7 +174,11 @@ def vec_to_weights(x, ndim, rank):
         a = np.copy(x[0]).reshape((1,))
         h = np.copy(x[1:ndim+1]).reshape((ndim,))
         U = np.copy(x[1+ndim:1+(1+rank)*ndim].reshape((rank, ndim)).T)
-        V = None
+        if "csigns" not in kwargs:
+            V = None
+        else:
+            csigns = kwargs.get("csigns")
+            V = np.dot(U, np.diag(csigns.ravel())) 
     elif x.size == (1+ndim+2*ndim*rank):
         a = np.copy(x[0]).reshape((1,))
         h = np.copy(x[1:ndim+1]).reshape((ndim,))
