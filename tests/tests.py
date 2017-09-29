@@ -137,13 +137,16 @@ solver = mner.solvers.solvers.LBFGSSolver
 factr = 1.0e10
 lbfgs = 30
 
-# set up the optimizer
+# set up the optimizer and solve
 if demo_type == 1:
     # find a local minimum of the training set
     print "Demo 1: find a local minimum on the training set."
     print ""
 
     opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr)
+
+    # optimize the model
+    x, ftrain = opt.optimize()
 
 elif demo_type == 2:
     # attempt to find the global minimum of the training set
@@ -153,6 +156,9 @@ elif demo_type == 2:
     global_solver = mner.solvers.solvers.MultiInitSearch
 
     opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, multi_init_search_solver=solver)
+
+    # optimize the model
+    x, ftrain = opt.optimize()
 
 elif demo_type == 3:
     # one-dimensional regularization grid search
@@ -166,6 +172,9 @@ elif demo_type == 3:
     hypergrid = [np.tile(hypergrid.reshape((hypergrid.size, 1)), (1, rank))]
 
     opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid)
+
+    # optimize the model
+    x, ftrain = opt.optimize()
 
 elif demo_type == 4:
     # multi-dimensional regularization grid search
@@ -183,6 +192,9 @@ elif demo_type == 4:
 
     opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, grid_search_cons=cons)
 
+    # optimize the model
+    x, ftrain = opt.optimize()
+
 elif demo_type == 5:
     # one-dimensional regularization Bayesian optimization
     print "Demo 5: one-dimensional Bayesian optimization to find a minimum on the cross-validation set."
@@ -194,6 +206,9 @@ elif demo_type == 5:
     domain = [np.array([0.0, 1.0]*rank).reshape((rank, 2)).T]
 
     opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain)
+
+    # optimize the model
+    x, ftrain = opt.optimize()
 
 elif demo_type == 6:
     # multi-dimensional regularization Bayesian optimization
@@ -213,9 +228,44 @@ elif demo_type == 6:
 
     opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler)
 
+    # optimize the model
+    x, ftrain = opt.optimize()
+
 elif demo_type == 7:
+    # multi-dimensional Bayesian optimization with annealing of the exploration weight
+    print "Demo 7: multi-dimensional Bayesian optimization with annealing of the exploration weight."
+    print ""
+
+    bayes_solver = mner.solvers.solvers.BayesSearch
+
+    # set up the regularization domain
+    domain = [[np.array([0.0, 1.0])]*rank]
+
+    # constrain the domain to avoid redundancy
+    cons = mner.solvers.constraints.SplitSign
+
+    # customize the sampling function (Monte Carlo will fail for large rank otherwise!)
+    sampler = mner.solvers.samplers.SplitSignSampling
+
+    # kernel variance and length scale
+    kernel_variance = 2.0
+    kernel_lengthscale = 0.1
+
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale)
+
+    # optimization settings (maxits, exploration_weight)
+    settings = [(50, 2.0), (50, 1.0), (50, 0.0)] 
+
+    x = opt.train_model.init_vec()
+    for i in range(len(settings)):
+        opt.solver.maxits = settings[i][0]
+        opt.solver.exploration_weight = settings[i][1]
+
+        x, ftrain = opt.optimize(x0=x)
+
+elif demo_type == 8:
     # find solution in the globally optimal domain with minimal nuclear-norm regularization
-    print "Demo 7: globally optimal approximation to the global minimum on the training set."
+    print "Demo 8: globally optimal approximation to the global minimum on the training set."
     print ""
 
     # greater precision is required for convergence
@@ -225,8 +275,9 @@ elif demo_type == 7:
 
     opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, nn_global_search_solver=solver, nn_global_search_maxiter=100)
 
-# optimize the model
-x, ftrain = opt.optimize()
+    # optimize the model
+    x, ftrain = opt.optimize()
+
 print "final ftrain = " + str(ftrain)
 print "final fcv = " + str(opt.compute_set("cv"))
 print "final test = " + str(opt.compute_set("test"))
