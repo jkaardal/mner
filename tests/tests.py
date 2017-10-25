@@ -134,7 +134,7 @@ fscale = {"trainset": -1, "cvset": -1, "testset": -1}
 solver = mner.solvers.solvers.LBFGSSolver
 
 # fit parameters (note the change for demo_type == 7 below)
-factr = 1.0e10
+factr = 5.0e9
 lbfgs = 30
 
 # set up the optimizer and solve
@@ -205,7 +205,7 @@ elif demo_type == 5:
     # set up the regularization domain
     domain = [np.array([0.0, 1.0]*rank).reshape((rank, 2)).T]
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
@@ -278,9 +278,37 @@ elif demo_type == 8:
     # optimize the model
     x, ftrain = opt.optimize()
 
+elif demo_type == 9:
+    # two-dimensional Bayesian optimization using nuclear-norm and l2-norm regularization
+    print "Demo 9: two-dimensional Bayesian optimization using using nuclear-norm and l2-norm regularization"
+
+    bayes_solver = mner.solvers.solvers.BayesSearch
+
+    # set up the regularization domain
+    domain = [np.array([0.0, 1.0]*rank).reshape((rank, 2)).T]
+
+    # include l2-norm signifier
+    rtype.append("l2-norm")
+
+    # include l2-norm domain
+    domain.append(np.array([0.0, 1.0]).reshape((2, 1)))
+
+    # kernel variance and length scale
+    kernel_variance = 2.0
+    kernel_lengthscale = 0.1
+
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, bayes_search_maxits=200)
+
+    # optimize the model
+    x, ftrain = opt.optimize()
+
 print "final ftrain = " + str(ftrain)
 print "final fcv = " + str(opt.compute_set("cv"))
 print "final test = " + str(opt.compute_set("test"))
+
+# copy ground truth
+a_GT = np.copy(a)
+h_GT = np.copy(h)
 
 # convert weight vector to coefficients
 a, h, U, V = mner.util.util.vec_to_weights(x, ndim, rank)
@@ -295,6 +323,16 @@ Jsym = 0.5*(Jsym + Jsym.T)
 [u_GT, _, _] = np.linalg.svd(0.5*(J+J.T))
 
 if matplotlib_loaded and show_plot:
+    plt.clf()
+    plt.subplot(1, 2, 1)
+    cm = np.max(np.abs(h_GT))
+    plt.imshow(np.reshape(h_GT, (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
+    plt.subplot(1, 2, 2)
+    cm = np.max(np.abs(h))
+    plt.imshow(np.reshape(h, (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
+    plt.show()
+
+    plt.clf()
     for i in range(6):
         plt.subplot(2, 6, i+1)
         cm = np.max(np.abs(u_GT[:,i]))

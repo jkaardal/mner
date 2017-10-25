@@ -813,13 +813,13 @@ class BayesSearch(BaseSearch):
                     
         # solving the subproblem
         self.xtmp, self.ftmp = self.solver.solve(x0, **kwargs)
-        self.fnew = self.cv_model.cost(self.xtmp)
+        self.fnew = self.cv_model.cost(self.xtmp.astype(self.float_dtype))
 
         # checking if new solution is the best found so far
         if self.fnew < self.fcv:
             self.fcv = np.copy(self.fnew)
             self.ftrain = np.copy(self.ftmp)
-            self.x = np.copy(self.xtmp)
+            self.x = np.copy(self.xtmp.astype(self.float_dtype))
 
         if self.verbosity >= 1:
             print "fnew = " + str(self.fnew) + ", fcv (best) = " + str(self.fcv)        
@@ -830,7 +830,7 @@ class BayesSearch(BaseSearch):
     
         # update storage arrays
         if not self.forget:
-            self.update_storage(self.xtmp, hyperparams, self.fnew, **kwargs)
+            self.update_storage(self.xtmp.astype(self.float_dtype), hyperparams, self.fnew, **kwargs)
 
         # return cost of hidden objective function
         return self.fnew.reshape((1, 1))
@@ -858,7 +858,7 @@ class BayesSearch(BaseSearch):
         import GPyOpt
 
         # initialize solution vector and costs
-        self.x = np.copy(x0)
+        self.x = np.copy(x0.astype(self.float_dtype))
         
         if not self.resume:
             # if the optimization is not being resumed

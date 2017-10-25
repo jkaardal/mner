@@ -262,15 +262,15 @@ class Optimizer(object):
         train_model, cv_model, test_model = None, None, None
         if self.datasets is None:
             # model trained on entire dataset
-            train_model = model.MNEr(resp, feat, self.rank, cetype=self.cetype, citype=self.citype, rtype=self.rtype, fscale=self.fscale["trainset"], use_vars=self.use_vars, use_consts=self.use_consts, float_dtype=self.float_dtype, x_dev=self.x_dev, **kwargs)
+            train_model = model.MNEr(resp, feat, self.rank, cetype=self.cetype, citype=self.citype, rtype=self.rtype, fscale=self.fscale["trainset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
         else:
             # model trained on subset of dataset
             if "trainset" in self.datasets:
-                train_model = model.MNEr(resp[self.datasets["trainset"]], feat[self.datasets["trainset"],:], self.rank, cetype=self.cetype, citype=self.citype, rtype=self.rtype, fscale=self.fscale["trainset"], use_vars=self.use_vars, use_consts=self.use_consts, float_dtype=self.float_dtype, x_dev=self.x_dev, **kwargs)
+                train_model = model.MNEr(resp[self.datasets["trainset"]], feat[self.datasets["trainset"],:], self.rank, cetype=self.cetype, citype=self.citype, rtype=self.rtype, fscale=self.fscale["trainset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
             if "cvset" in self.datasets:
-                cv_model = model.MNEr(resp[self.datasets["cvset"]], feat[self.datasets["cvset"],:], self.rank, cetype=self.cetype, citype=self.citype, fscale=self.fscale["cvset"], use_vars=self.use_vars, use_consts=self.use_consts, float_dtype=self.float_dtype, x_dev=self.x_dev, **kwargs)
+                cv_model = model.MNEr(resp[self.datasets["cvset"]], feat[self.datasets["cvset"],:], self.rank, cetype=self.cetype, citype=self.citype, fscale=self.fscale["cvset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
             if "testset" in self.datasets:
-                test_model = model.MNEr(resp[self.datasets["testset"]], feat[self.datasets["testset"],:], self.rank, cetype=self.cetype, citype=self.citype, fscale=self.fscale["testset"], use_vars=self.use_vars, use_consts=self.use_consts, float_dtype=self.float_dtype, x_dev=self.x_dev, **kwargs)
+                test_model = model.MNEr(resp[self.datasets["testset"]], feat[self.datasets["testset"],:], self.rank, cetype=self.cetype, citype=self.citype, fscale=self.fscale["testset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
 
         return (train_model, cv_model, test_model)
 

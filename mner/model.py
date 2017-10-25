@@ -25,8 +25,8 @@ class MNEr:
 
 
     # class initialization
-    def __init__(self, resp, feat, rank, cetype=None, citype=None, rtype=None, fscale=1.0, use_vars={'avar': True, 'hvar': True, 'UVvar': True}, use_consts={'aconst': False, 'hconst': False, 'UVconst': False, 'Jconst': False}, float_dtype=np.float64, **kwargs):
-        """ Initialize MNEr class instantiation.
+    def __init__(self, resp, feat, rank, cetype=None, citype=None, rtype=None, fscale=1.0, use_vars={'avar': True, 'hvar': True, 'UVvar': True}, use_consts={'aconst': False, 'hconst': False, 'UVconst': False, 'Jconst': False}, **kwargs):
+        """Initialize MNEr class instantiation.
 
             Initialize the class instantiation and some basic set-up
             of important parameters. It is best to include as much of
@@ -37,7 +37,7 @@ class MNEr:
               rtype=None, fscale=1.0, use_vars={'avar': True, 'hvar':
               True, 'UVvar': True}, use_consts={'aconst': False,
               'hconst': False, 'UVconst': False, 'Jconst': False},
-              float_dtype=np.float64, **kwargs)
+              **kwargs)
                 resp: numpy array of the output labels with shape
                   (nsamp,) where nsamp is the number of data
                   samples. Each element of resp must be in the range
@@ -97,11 +97,12 @@ class MNEr:
                   appear in the objective. Note that the gradient,
                   Hessian, and constraints are NOT taken with respect
                   to these variables.
-                float_dtype: (optional) the floating- point data type
-                  of data and mathematical operations.
 
                 kwargs: keyword arguments are used to set
-                  model-specific hyperparameters
+                  model-specific hyperparameters and floating point
+                  data type.
+                  - float_dtype: (optional) the floating- point data
+                    type of data and mathematical operations.
                   - csigns: (optional, default=None) numpy array of
                     values drawn from {-1, 1} that set the sign
                     relationship betweens columns in U and V for the
@@ -111,6 +112,9 @@ class MNEr:
 
         """
 
+        # getting floating point data type
+        self.float_dtype = kwargs.get("float_dtype", np.float64)
+
         # get number samples
         self.nsamp = resp.size
         # get number of features
@@ -119,9 +123,9 @@ class MNEr:
         assert self.nsamp == feat.shape[0]
 
         # load the labels onto the device
-        self.resp = theano.shared(resp.reshape((self.nsamp,)).astype(float_dtype), name="resp")
+        self.resp = theano.shared(resp.reshape((self.nsamp,)).astype(self.float_dtype), name="resp")
         # load the features onto the device
-        self.feat = theano.shared(feat.astype(float_dtype), name="feat")
+        self.feat = theano.shared(feat.astype(self.float_dtype), name="feat")
         
         # get the rank of the low-rank MNE model
         self.rank = rank
@@ -177,10 +181,8 @@ class MNEr:
         if 'Jconst' not in self.use_consts:
             self.use_consts['Jconst'] = False
 
-        # get the floating-point precision of the data, weights, and mathematical operations
-        self.float_dtype = float_dtype
         # get machine precision for the given floating-point precision
-        self.eps = np.finfo(float_dtype).eps
+        self.eps = np.finfo(self.float_dtype).eps
 
         # count the number of weights that need to be optimized
         self.nvar = 0
@@ -200,19 +202,19 @@ class MNEr:
 
         # initialize constants on the device
         if self.use_consts['aconst']:
-            self.aconst = theano.shared(np.zeros((1,)).astype(float_dtype), name="aconst")
+            self.aconst = theano.shared(np.zeros((1,)).astype(self.float_dtype), name="aconst")
         if self.use_consts['hconst']:
-            self.hconst = theano.shared(np.zeros((self.ndim,)).astype(float_dtype), name="hconst")
+            self.hconst = theano.shared(np.zeros((self.ndim,)).astype(self.float_dtype), name="hconst")
         if self.use_consts['UVconst']:
-            self.Uconst = theano.shared(np.zeros((self.ndim, 1)).astype(float_dtype), name="Uconst")
-            self.Vconst = theano.shared(np.zeros((self.ndim, 1)).astype(float_dtype), name="Vconst")
+            self.Uconst = theano.shared(np.zeros((self.ndim, 1)).astype(self.float_dtype), name="Uconst")
+            self.Vconst = theano.shared(np.zeros((self.ndim, 1)).astype(self.float_dtype), name="Vconst")
         if self.use_consts['Jconst']:
-            self.Jconst = theano.shared(np.zeros((self.ndim, self.ndim)).astype(float_dtype), name="Jconst")
+            self.Jconst = theano.shared(np.zeros((self.ndim, self.ndim)).astype(self.float_dtype), name="Jconst")
 
         # get signs for the linear equality constraints and initialize on the device
         csigns = kwargs.get("csigns", None)
         if isinstance(csigns, list) or isinstance(csigns, tuple):
-            csigns = np.array(csigns).astype(float_dtype)
+            csigns = np.array(csigns).astype(self.float_dtype)
         if csigns is not None:
             self.init_csigns(csigns)
 
@@ -1059,17 +1061,21 @@ class MNEr:
             V *= T.tile(w.reshape((1, self.rank)), (self.ndim, 1))
 
         l = 0.0
-        self.reg_params = []
-        idx = 0
+        self.reg_params = [[]]*len(self.rtype)
         if "nuclear-norm" in self.rtype:
-            self.reg_params.append(theano.shared(np.zeros((self.rank,)).astype(self.float_dtype), name="reg_params_nuclear-norm"))
+            idx = self.rtype.index("nuclear-norm")
+            self.reg_params[idx] = theano.shared(np.zeros((self.rank,)).astype(self.float_dtype), name="reg_params_nuclear-norm")
             if "UV-linear-insert-relaxed" in self.cetype:
                 l += 0.5 * T.sum( (U ** 2 + V ** 2) * T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)) )
             elif "UV-linear-insert" in self.cetype:
                 l += 0.5 * T.sum( (U ** 2 + V ** 2) * T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)) )
             else:
                 l += 0.5 * T.sum( (Q ** 2) * T.tile(self.reg_params[idx].reshape((1, self.rank)), (2*self.ndim, 1)) )
-            idx += 1
+
+        if "l2-norm" in self.rtype:
+            idx = self.rtype.index("l2-norm")
+            self.reg_params[idx] = theano.shared(np.zeros((1,)).astype(self.float_dtype), name="reg_param_l2-norm")
+            l += 0.5 * self.reg_params[idx] * T.sum(h ** 2)
 
         self.l = l
         return l
@@ -1096,8 +1102,8 @@ class MNEr:
             V *= T.tile(w.reshape((1, self.rank)), (self.ndim, 1))
 
         dl = T.zeros((self.nvar,))
-        idx = 0
         if "nuclear-norm" in self.rtype:
+            idx = self.rtype.index("nuclear-norm")
             offset = 0
             if self.use_vars['avar']:
                 offset += 1
@@ -1124,7 +1130,14 @@ class MNEr:
                     dl += T.concatenate([dldQ, T.zeros((w.size, 1))], axis=0).reshape((self.nvar,))
                 else:
                     dl += dldQ.reshape((self.nvar,))
-            idx += 1
+
+        if "l2-norm" in self.rtype:
+            idx = self.rtype.index("l2-norm")
+            offset = 0
+            if self.use_vars['avar']:
+                offset += 1
+            if self.use_vars['hvar']:
+                dl = T.inc_subtensor(dl[offset:offset+self.ndim], self.reg_params[idx][0] * h)
 
         self.dl = dl
         return dl
@@ -1149,8 +1162,8 @@ class MNEr:
             U, V = self.Q_to_UV(Q)
 
         d2l = T.zeros((self.nvar, self.nvar))
-        idx = 0
         if "nuclear-norm" in self.rtype:
+            idx = self.rtype.index("nuclear-norm")
             offset = 0
             if self.use_vars['avar']:
                 offset += 1
@@ -1161,7 +1174,14 @@ class MNEr:
             else:
                 d2ldQ2 = T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((self.rank, 1)), (1, 2*self.ndim)).reshape((2*self.rank*self.ndim,)))
             d2l = T.inc_subtensor(d2l[offset:offset+d2ldQ2.shape[0], offset:offset+d2ldQ2.shape[1]], d2ldQ2)
-            idx += 1
+
+        if "l2-norm" in self.rtype:
+            idx = self.rtype.index("l2-norm")
+            offset = 0
+            if self.use_vars['avar']:
+                offset += 1
+            if self.use_vars['hvar']:
+                d2l = T.inc_subtensor(d2l[offset:offset+self.ndim, offset:offset+self.ndim], T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((1, 1)), (self.ndim, 1)).ravel()))
 
         self.d2l = d2l
         return d2l
@@ -1897,9 +1917,9 @@ if __name__ == "__main__":
     feat = np.array([[1.0, -1.0, 0.5], [0.5, -0.25, -1.0], [-0.75, 0.75, 1.5], [-2.0, 0.25, -1.0]])
 
     rank = 2
-    cetype = "UV-bilinear"
+    cetype = "UV-linear-insert"
     citype = None
-    rtype = "nuclear-norm"
+    rtype = ["nuclear-norm", "l2-norm"]
     fscale = 1.0/resp.size
     use_vars = {'avar': True, 'hvar': True, 'UVvar': True}
     use_consts = {'aconst': True, 'hconst': True, 'UVconst': True, 'Jconst': True}
@@ -1910,7 +1930,17 @@ if __name__ == "__main__":
     else:
         float_dtype = np.float64
     
-    reg_params = np.arange(0.1, 0.1*(rank+0.5), 0.1)
+    if rtype is not None:
+        reg_params = [[]]*len(rtype)
+    else:
+        reg_params = []
+    if "nuclear-norm" in rtype:
+        idx = rtype.index("nuclear-norm")
+        reg_params[idx] = np.random.rand(rank,)
+    if "l2-norm" in rtype:
+        idx = rtype.index("l2-norm")
+        reg_params[idx] = np.random.rand(1,)
+    #reg_params = np.arange(0.1, 0.1*(rank+0.5), 0.1)
     csigns = []
     for i in range(rank):
         if i % 2 == 0:
@@ -1963,14 +1993,15 @@ if __name__ == "__main__":
 
     #model.init_weights_feas()
     model.init_weights()
-    model.x += float_dtype(0.25)
+    #model.x += float_dtype(0.25)
     # showing bilinear rank-deficiency
     #a, h, Q, _ = model.vec_to_weights(model.x)
     #Q[:2,:] = 0.0
     #Q[feat.shape[1]:feat.shape[1]+2,:] = 0.0
-    model.x = model.weights_to_vec(a, h, Q)
-    if rtype is not None:
-        model.assign_reg_params(rtype, reg_params)
+    #model.x = model.weights_to_vec(a, h, Q)
+    if rtype is not None or len(rtype) > 0:
+        for i in range(len(rtype)):
+            model.assign_reg_params(rtype[i], reg_params[i])
     print "cost = "
     print model.cost(model.x)
     print ""

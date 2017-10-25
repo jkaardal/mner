@@ -229,7 +229,7 @@ def load_blk_weights(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="",
     return (a, h, U, V)
 
 
-def save_blk_weights(xblk, r, rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def save_blk_weights(xblk, r, rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
     # save block results to file
 
     if custom_file is None:
@@ -251,7 +251,7 @@ def save_blk_weights(xblk, r, rank, ndim, jack=1, path=os.getcwd(), prefix="", s
 
 
 # MNEr block coordinate descent checkpointing
-def save_blk_checkpoint(xblk, r, rank, ndim, iter_num, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def save_blk_checkpoint(xblk, r, rank, iter_num, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
     # save checkpoint
 
     chkpnt_file = ""
@@ -278,7 +278,7 @@ def save_blk_checkpoint(xblk, r, rank, ndim, iter_num, jack=1, path=os.getcwd(),
     else:
         chkpnt = [str(iter_num), str(r)]
 
-    save_blk_weights(xblk, r, rank, ndim, jack, path, prefix, suffix, out_float_dtype, custom_file)
+    save_blk_weights(xblk, r, rank, jack, path, prefix, suffix, out_float_dtype, custom_file)
 
     with open(os.path.expanduser(chkpnt_file), "w") as f:
         f.write(",".join(chkpnt))
@@ -375,7 +375,7 @@ def clear_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="",
 
 
 # MNEr results I/O
-def save_weights(x, rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def save_weights(x, rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
     # save weights to file
 
     if custom_file is not None:
@@ -394,7 +394,7 @@ def save_weights(x, rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", 
         x.astype(out_float_dtype).tofile(f)
 
 
-def load_weights(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_file=None):
+def load_weights(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_file=None):
     # load weights from file
 
     if custom_file is not None:
@@ -418,7 +418,7 @@ def load_weights(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", in_
     return x
 
 
-def load_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_files=None, custom_sampling_history_file=None):
+def load_checkpoint(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_files=None, custom_sampling_history_file=None):
     # load checkpointed data
 
     chkpnt_file = ""
@@ -443,7 +443,7 @@ def load_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", 
             chkpnt = chkpnt[-1]
         chkpnt = [int(x) for x in chkpnt]
         if len(chkpnt) > 0:
-            x = load_weights(rank, ndim, jack, path, prefix, suffix, in_float_dtype, out_float_dtype, custom_files)
+            x = load_weights(rank, jack, path, prefix, suffix, in_float_dtype, out_float_dtype, custom_files)
             try:
                 X, E, Fval = load_sampling_history(rank, jack, path, prefix, suffix, out_float_dtype, custom_sampling_history_file)
             except IOError:
@@ -454,7 +454,7 @@ def load_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", 
 
 
 
-def save_checkpoint(x, rank, ndim, iter_num, X=None, E=None, Fval=None, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None, custom_sampling_history_file=None):
+def save_checkpoint(x, rank, iter_num, X=None, E=None, Fval=None, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None, custom_sampling_history_file=None):
     # save checkpoint
 
     chkpnt_file = ""
@@ -468,7 +468,7 @@ def save_checkpoint(x, rank, ndim, iter_num, X=None, E=None, Fval=None, jack=1, 
 
     chkpnt = [str(iter_num)]
 
-    save_weights(x, rank, ndim, jack, path, prefix, suffix, out_float_dtype, custom_file)
+    save_weights(x, rank, jack, path, prefix, suffix, out_float_dtype, custom_file)
     if X is not None:
         save_sampling_history(X, E, Fval, rank, jack, path, prefix, suffix, out_float_dtype, custom_sampling_history_file)
     
@@ -479,7 +479,7 @@ def save_checkpoint(x, rank, ndim, iter_num, X=None, E=None, Fval=None, jack=1, 
 
 
 
-def clear_weights(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", custom_file=None):
+def clear_weights(rank, jack=1, path=os.getcwd(), prefix="", suffix="", custom_file=None):
     # delete weight file
 
     if custom_file is not None:
