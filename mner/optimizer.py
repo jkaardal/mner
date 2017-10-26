@@ -357,7 +357,7 @@ class Optimizer(object):
 
         """
         if not hasattr(self.solver, 'initialized') or self.solver.initialized == False:
-            self.solver = self.solver(self.__dict__, **kwargs)
+            self.solver = self.solver(self, **kwargs)
             
 
     def compute_set(self, set_name, **kwargs):
@@ -402,3 +402,19 @@ class Optimizer(object):
 
         self.x, self.ftrain = self.solver.solve(x0.astype(self.float_dtype), **kwargs)
         return (self.x, self.ftrain)
+
+    
+    def get(self, name, default=None):
+        """ Get attribute, if it exists; otherwise, return default.
+
+            [inputs] (name, default=None)
+                name: string identifying the attribute name.
+                default: (optional) if attribute does not exist,
+                return a default value.
+        
+            [returns] attr_val
+                attr_val: either the requested attribute identified by
+                name or the default, when appropriate.
+
+        """
+        return getattr(self, name, default)

@@ -10,7 +10,26 @@ import numpy as np
 
 """
 
-class SplitSign(object):
+class BaseCons(object):
+
+    def get(self, name, default=None):
+        """ Get attribute, if it exists; otherwise, return default.
+
+            [inputs] (name, default=None)
+                name: string identifying the attribute name.
+                default: (optional) if attribute does not exist,
+                return a default value.
+        
+            [returns] attr_val
+                attr_val: either the requested attribute identified by
+                name or the default, when appropriate.
+
+        """
+        return getattr(self, name, default)
+
+
+
+class SplitSign(BaseCons):
     """ SplitSign (class)
 
         Constrain multiple nuclear-norm regularization parameters to
@@ -24,10 +43,10 @@ class SplitSign(object):
         """ Initialize the split sign constraints.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which the
+                  constraints are instantiated.
                   - qualifier: (default="") string that prepends a
                     prefix to the expected keyword arguments.
                   - (qualifier +)csigns: (default=None) numpy array
@@ -48,10 +67,10 @@ class SplitSign(object):
             regularization parameters is feasible.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which parameters
+                  may be passed to define the constraints.
                   - state: dictionary giving the present
                     hyperparameter state (see
                     mner.solvers.manager.py). Must have key
@@ -91,10 +110,10 @@ class SplitSign(object):
             Bayesian optimization software.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which parameters
+                  may be passed to define the constraints.
                   - rtype: list of strings of hyperparameter
                     types. Must include "nuclear-norm".
                   - red_dim: integer numpy array of the number of
@@ -132,7 +151,7 @@ class SplitSign(object):
 
     
 
-class InvariantRtype(object):
+class InvariantRtype(BaseCons):
     """ InvariantRtype (class)
 
         Constrain multiple hyperparameters of a given type to
@@ -146,10 +165,10 @@ class InvariantRtype(object):
         """ Initialize the invariant constraints.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which the
+                  constraints are instantiated.
                   - qualifier: (default="") string that prepends a
                     prefix to the expected keyword arguments.
                 kwargs: Note that keyword arguments take precedence
@@ -174,10 +193,10 @@ class InvariantRtype(object):
             are feasible.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which parameters
+                  may be passed to define the constraints.
                   - state: dictionary giving the present
                     hyperparameter state (see
                     mner.solvers.manager.py).
@@ -204,10 +223,10 @@ class InvariantRtype(object):
             Bayesian optimization software.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which parameters
+                  may be passed to define the constraints.
                   - rtype: list of strings of hyperparameter
                     types. Must include "nuclear-norm".
                   - red_dim: integer numpy array of the number of

@@ -38,9 +38,9 @@ class HyperManager(object):
             [inputs] (qualifier="", parent=dict(), **kwargs)
                 qualifier: (optional) string that preppends a prefix
                   to the expected keyword arguments (default "").
-                parent: dictionary composed of the parent namespace
-                  (e.g. a class from solvers.py) from which the manager
-                  is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. a class from
+                  solvers.py) from which the manager is instantiated.
                   - train_model: (default=None) low-rank MNE model
                     evaluated on the training set
                   - (qualifier + )rtype: (default=None) list of
@@ -187,11 +187,11 @@ class HyperManager(object):
             if self.cons is not None:
                 # initialize constraints
                 for i in range(len(self.cons)):
-                    self.cons[i] = self.cons[i](self.__dict__, **kwargs)
+                    self.cons[i] = self.cons[i](self, **kwargs)
 
             if self.sampler is not None:
                 # initialize sampling function
-                self.sampler = self.sampler(self.__dict__, **kwargs)
+                self.sampler = self.sampler(self, **kwargs)
                         
 
     def check_feasibility(self, **kwargs):
@@ -209,7 +209,7 @@ class HyperManager(object):
         feasible = True
         if self.cons is not None:
             for i in range(len(self.cons)):
-                if not self.cons[i].constrain(self.__dict__, **kwargs):
+                if not self.cons[i].constrain(self, **kwargs):
                     # if infeasbile, break
                     feasible = False
                     break
@@ -382,7 +382,7 @@ class HyperManager(object):
             self.state[r] = v[self.red_index[i]:self.red_index[i+1]]
             if self.dim[i] != self.red_dim[i]:
                 if r in self.deps:
-                    self.state[r] = self.deps[r](parent=self.__dict__, **kwargs).ravel()
+                    self.state[r] = self.deps[r](parent=self, **kwargs).ravel()
                 else:
                     self.state[r] = np.tile(self.state[r].reshape((1, 1)), (self.dim[i], 1)).ravel()
         return self.state
@@ -690,8 +690,23 @@ class HyperManager(object):
             self.cons_f = None
             return self.cons_f
         for i in range(len(self.cons)):
-            c_str = self.cons[i].constrain_str(self.__dict__, **kwargs)
+            c_str = self.cons[i].constrain_str(self, **kwargs)
             for c in c_str:
                 self.cons_f.append({'name': 'hypercon_' + str(idx), 'constrain': c})
                 idx += 1
         return self.cons_f
+
+    def get(self, name, default=None):
+        """ Get attribute, if it exists; otherwise, return default.
+
+            [inputs] (name, default=None)
+                name: string identifying the attribute name.
+                default: (optional) if attribute does not exist,
+                return a default value.
+        
+            [returns] attr_val
+                attr_val: either the requested attribute identified by
+                name or the default, when appropriate.
+
+        """
+        return getattr(self, name, default)

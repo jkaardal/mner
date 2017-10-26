@@ -1886,8 +1886,20 @@ class MNEr:
 
         return self.cineq_hess
 
+    def get(self, name, default=None):
+        """ Get attribute, if it exists; otherwise, return default.
 
+            [inputs] (name, default=None)
+                name: string identifying the attribute name.
+                default: (optional) if attribute does not exist,
+                return a default value.
+        
+            [returns] attr_val
+                attr_val: either the requested attribute identified by
+                name or the default, when appropriate.
 
+        """
+        return getattr(self, name, default)
 
 
 

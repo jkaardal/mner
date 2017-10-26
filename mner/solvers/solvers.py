@@ -31,9 +31,10 @@ class BaseSolver(object):
         """ Initialize the instantiation of class BaseSolver.
 
             [inputs] (parent=dict(), **kwargs) 
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module mner.optimizer.py)
-                  from which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - x0 (default=None): initial weights
                   - train_model (default=None): low-rank MNE model
                     evaluated on the training set
@@ -69,7 +70,24 @@ class BaseSolver(object):
         """
         # initialize a nested solver (e.g. for solving a subproblem)
         if not hasattr(self.solver, 'initialized') or self.solver.initialized == False:
-            self.solver = self.solver(self.__dict__, **kwargs)
+            self.solver = self.solver(self, **kwargs)
+
+    def get(self, name, default=None):
+        """ Get attribute, if it exists; otherwise, return default.
+
+            [inputs] (name, default=None)
+                name: string identifying the attribute name.
+                default: (optional) if attribute does not exist,
+                return a default value.
+        
+            [returns] attr_val
+                attr_val: either the requested attribute identified by
+                name or the default, when appropriate.
+
+        """
+        return getattr(self, name, default)
+
+    
 
             
 class IPMSolver(BaseSolver):
@@ -86,9 +104,10 @@ class IPMSolver(BaseSolver):
             done already).
 
             [inputs] (parent=dict(), **kwargs) 
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - parameters are inherited from BaseSolver
                   - x_dev: (default=None) Theano tensor for the
                     weights
@@ -209,9 +228,10 @@ class LBFGSSolver(BaseSolver):
         """ Initialize the L-BFGS solver instantiation.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - parameters are inherited from BaseSolver
                 kwargs: Note that keyword arguments take precedence
                   over parent when arguments overlap
@@ -290,9 +310,10 @@ class BaseSearch(object):
         """ Initialize the base search class instantiation.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - train_model: (default=None) low-rank MNE model
                     evaluated on the training set
                   - cv_model: (default=None) low-rank MNE model
@@ -387,9 +408,10 @@ class BaseSearch(object):
             hyperparameters.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - hyperparams: (default=None) vector of
                     hyperparameters in the full hyperparameter space
                     (see mner.solvers.manager.py)
@@ -443,7 +465,22 @@ class BaseSearch(object):
 
         """
         if not hasattr(self.solver, 'initialized') or self.solver.initialized == False:
-            self.solver = self.solver(self.__dict__, **kwargs)
+            self.solver = self.solver(self, **kwargs)
+
+    def get(self, name, default=None):
+        """ Get attribute, if it exists; otherwise, return default.
+
+            [inputs] (name, default=None)
+                name: string identifying the attribute name.
+                default: (optional) if attribute does not exist,
+                return a default value.
+        
+            [returns] attr_val
+                attr_val: either the requested attribute identified by
+                name or the default, when appropriate.
+
+        """
+        return getattr(self, name, default)
 
 
 
@@ -458,9 +495,10 @@ class GridSearch(BaseSearch):
         """ Initialize the grid search.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - parameters are inherited from BaseSearch
                 kwargs: Note that keyword arguments take precedence
                   over parent when arguments overlap
@@ -548,7 +586,7 @@ class GridSearch(BaseSearch):
             # initialize storage, if applicable; initialize x
             if not self.forget and not self.storage_initialized:
                 self.init_storage(self.hyperparams, **kwargs)
-            x0 = np.copy(self.init_x(self.__dict__, **kwargs))
+            x0 = np.copy(self.init_x(self, **kwargs))
 
             # check feasibility of regularization parameters
             feasible = self.hyper_manager.check_feasibility(**kwargs)
@@ -618,9 +656,10 @@ class BayesSearch(BaseSearch):
         """ Initialize the Bayesian optimization search.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - parameters are inherited from BaseSearch
                 kwargs: Note that keyword arguments take precedence
                   over parent when arguments overlap
@@ -805,7 +844,7 @@ class BayesSearch(BaseSearch):
         # initialization
         self.hyper_manager.build_state_from_red_vector(hyperparams_red.ravel(), **kwargs)
         self.hyper_manager.update_model(**kwargs)
-        x0 = np.copy(self.init_x(self.__dict__, **kwargs))
+        x0 = np.copy(self.init_x(self, **kwargs))
         hyperparams = self.hyper_manager.build_vector_from_state(**kwargs)
 
         if self.verbosity >= 2:
@@ -953,9 +992,10 @@ class NNGlobalSearch(BaseSearch):
         """ Initialize the globally optimal approximation solver.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - parameters are inherited from BaseSearch
                   - (nn_global_search_)rtype:
                     (default=self.train_model.rtype) list of strings
@@ -1146,9 +1186,10 @@ class MultiInitSearch(BaseSolver):
         """ Initialize the global optimization heuristic solver.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class Optimizer from module optimizer.py) from
-                  which the solver is instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class Optimizer
+                  from module mner.optimizer.py) from which the solver
+                  is instantiated.
                   - parameters are inherited from BaseSolver
                 kwargs: Note that keyword arguments take precedence
                   over parent when arguments overlap

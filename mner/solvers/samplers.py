@@ -8,7 +8,25 @@ import numpy as np
 
 """
 
-class InvariantRtypeSampling(object):
+class BaseSampler(object):
+
+    def get(self, name, default=None):
+        """ Get attribute, if it exists; otherwise, return default.
+
+            [inputs] (name, default=None)
+                name: string identifying the attribute name.
+                default: (optional) if attribute does not exist,
+                return a default value.
+        
+            [returns] attr_val
+                attr_val: either the requested attribute identified by
+                name or the default, when appropriate.
+
+        """
+        return getattr(self, name, default)
+
+
+class InvariantRtypeSampling(BaseSampler):
     """ InvariantRtypeSampling (class)
 
         Sample a feasible point for invariant hyperparameters. See
@@ -20,10 +38,10 @@ class InvariantRtypeSampling(object):
         """ Initialize the sampler.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which the sampler
+                  is instantiated.
                   - qualifier: (default="") string that preprends a
                     prefix to the expected keyword arguments.
                   - rtype: (default=[]) list of strings where each
@@ -87,7 +105,7 @@ class InvariantRtypeSampling(object):
 
 
     
-class SplitSignSampling(object):
+class SplitSignSampling(BaseSampler):
     """ SplitSignSampling (class)
 
         Sample a feasible point for nuclear-norm regularization with
@@ -100,10 +118,10 @@ class SplitSignSampling(object):
         """ Initialize the sampler.
 
             [inputs] (parent=dict(), **kwargs)
-                parent: dictionary composed of the parent namespace
-                  (e.g. class HyperManager from
-                  mner.solvers.manager.py) from which the solver is
-                  instantiated.
+                parent: object or dictionary composed of the parent
+                  instantiation or namespace (e.g. class HyperManager
+                  from mner.solvers.manager.py) from which the sampler
+                  is instantiated.
                   - qualifier: (default="") string that preprends a
                     prefix to the expected keyword arguments.
                   - rtype: (default=[]) list of strings where each
