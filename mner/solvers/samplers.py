@@ -80,16 +80,10 @@ class InvariantRtypeSampling(BaseSampler):
     def samp_func(self, space, num_data, **kwargs):
         """ Generate feasible samples.
 
-            [inputs] (bounds, num_data) 
-
-                bounds: iterable of domains for each hyperparameter in
-                  the reduced hyperparameter space. Axis=0 corresponds
-                  to an element of the hyperparameter space while
-                  axis=1 contains the lower and upper
-                  bound. E.g. bounds[k][0] is the lower bound of the
-                  kth element and bounds[k][1] is the upper bound of
-                  the kth element.
-
+            [inputs] (bounds, num_data, **kwargs) 
+                space: object that handles the hyperparameter domain
+                  of the the function as defined in
+                  GPyOpt.core.task.space.
                 num_data: positive integer for the number of points to
                   genenerate.
 
@@ -154,14 +148,10 @@ class SplitSignSampling(BaseSampler):
     def samp_func(self, space, num_data, **kwargs):
         """Generate feasible samples.
 
-            [inputs] (bounds, num_data) 
-                bounds: iterable of domains for each hyperparameter in
-                  the reduced hyperparameter space. Axis=0 corresponds
-                  to an element of the hyperparameter space while
-                  axis=1 contains the lower and upper
-                  bound. E.g. bounds[k][0] is the lower bound of the
-                  kth element and bounds[k][1] is the upper bound of
-                  the kth element.
+            [inputs] (bounds, num_data, **kwargs) 
+                space: object that handles the hyperparameter domain
+                  of the the function as defined in
+                  GPyOpt.core.task.space.
                 num_data: positive integer for the number of points to
                   genenerate.
                 kwargs: Note that keyword arguments take precedence

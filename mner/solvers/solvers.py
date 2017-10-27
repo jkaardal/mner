@@ -706,7 +706,7 @@ class BayesSearch(BaseSearch):
                     to zero explore less. This is only relevant to
                     some acquisition functions like 'LCB'. For more
                     information, see the GPyOpt documentation.
-                  - (bayes_search_)kernel: (default=GPy.kern.matern32)
+                  - (bayes_search_)kernel: (default=GPy.kern.matern52)
                     covariance kernel used in the Gaussian
                     process. For more options, see the GPyOpt
                     documentation.
