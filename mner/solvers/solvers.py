@@ -87,6 +87,8 @@ class BaseSolver(object):
         """
         return getattr(self, name, default)
 
+    def __getitem__(self, name):
+        return self.get(name)
     
 
             
@@ -202,7 +204,7 @@ class IPMSolver(BaseSolver):
         if x0 is None:
             x0 = self.x0
         self.x, self.s, self.lda, self.ftrain, self.kkt = self.problem.solve(x0=x0)
-        return (self.x, self.ftrain)
+        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
 
 
 
@@ -286,7 +288,7 @@ class LBFGSSolver(BaseSolver):
         if x0 is None:
             x0 = self.x0
         self.x, self.ftrain, _ = fmin_l_bfgs_b(func=lambda x: self.train_model.cost(x.astype(self.float_dtype)).astype(np.float64), x0=x0, fprime=lambda x: self.train_model.grad(x.astype(self.float_dtype)).astype(np.float64), bounds=self.bounds, m=self.lbfgs, factr=self.factr, pgtol=self.pgtol, epsilon=self.epsilon, iprint=self.iprint, disp=self.disp, maxfun=self.maxfun, maxiter=self.maxiter, maxls=self.maxls)
-        return (self.x, self.ftrain)
+        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
         
 
 
@@ -482,6 +484,8 @@ class BaseSearch(object):
         """
         return getattr(self, name, default)
 
+    def __getitem__(self, name):
+        return self.get(name)
 
 
 class GridSearch(BaseSearch):
@@ -564,7 +568,7 @@ class GridSearch(BaseSearch):
 
         """
         # initialize solution vector and costs
-        self.x = np.copy(x0)
+        self.x = np.copy(x0.astype(self.float_dtype))
         self.ftrain = None
         self.fcv = np.inf
 
@@ -638,7 +642,7 @@ class GridSearch(BaseSearch):
             if self.complete:
                 print "Grid search complete."
 
-        return (self.x, self.ftrain)
+        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
 
         
         
@@ -821,7 +825,7 @@ class BayesSearch(BaseSearch):
                 hyperparams_red_init[j, i] = lower_bound[i] + np.exp(hstep[i]*j) - 1.0
         hyperparams_red_init = hyperparams_red_init[~np.isnan(hyperparams_red_init).any(axis=1)]
 
-        return hyperparams_red_init
+        return hyperparams_red_init.astype(self.float_dtype)
 
 
     def hidden_cost(self, hyperparams_red, **kwargs):
@@ -872,7 +876,7 @@ class BayesSearch(BaseSearch):
             self.update_storage(self.xtmp.astype(self.float_dtype), hyperparams, self.fnew, **kwargs)
 
         # return cost of hidden objective function
-        return self.fnew.reshape((1, 1))
+        return self.fnew.reshape((1, 1)).astype(self.float_dtype)
 
     
     def solve(self, x0=None, **kwargs):
@@ -923,20 +927,20 @@ class BayesSearch(BaseSearch):
             if self.verbosity >= 0:
                 print "Initializing Bayesian optimization."
 
-            self.bayes_opt = GPyOpt.methods.BayesianOptimization(f=self.hidden_cost, domain=self.hyper_manager.domain_f, constrains=self.hyper_manager.cons_f, X=hyperparams_red_init, Y=fcv_init, acquisition_type=self.acquisition_type, exact_feval=self.exact_feval, normalize_Y=self.normalize_Y, acquisition_jitter=self.acquisition_jitter, model_type=self.model_type, acquisition_weight=self.exploration_weight, cont_sampler=self.hyper_manager.sampler.samp_func, model_update_interval=self.model_update_interval)
+            self.bayes_opt = GPyOpt.methods.BayesianOptimization(f=self.hidden_cost, domain=self.hyper_manager.domain_f, constrains=self.hyper_manager.cons_f, X=hyperparams_red_init, Y=fcv_init, acquisition_type=self.acquisition_type, exact_feval=self.exact_feval, normalize_Y=self.normalize_Y, acquisition_jitter=self.acquisition_jitter, model_type=self.model_type, acquisition_weight=self.exploration_weight, user_def_dist=self.hyper_manager.sampler.samp_func, model_update_interval=self.model_update_interval)
 
             # assume that if solve is called again, it is to resume the optimization
             self.resume = True
 
         # initialize kernel
         if self.kernel is None:
-            self.kernel = GPy.kern.Matern32(self.hyper_manager.red_index[-1], ARD=True)
+            self.bayes_opt.model.kernel = GPy.kern.Matern52(self.hyper_manager.red_index[-1], ARD=True)
 
         # final configurations before commencing optimization
         if self.kernel_variance_fixed is not None and self.kernel_variance_fixed is not False:
-            self.bayes_opt.model.model.kern.variance.constrain_fixed(self.kernel_variance_fixed)
+            self.bayes_opt.model.kernel.variance.constrain_fixed(self.kernel_variance_fixed)
         if self.kernel_lengthscale_fixed is not None and self.kernel_lengthscale_fixed is not False:
-            self.bayes_opt.model.model.kern.lengthscale.constrain_fixed(self.kernel_lengthscale_fixed)
+            self.bayes_opt.model.kernel.lengthscale.constrain_fixed(self.kernel_lengthscale_fixed)
 
         if self.verbosity >= 2:
             print "initial process parameters:"
@@ -970,7 +974,7 @@ class BayesSearch(BaseSearch):
             else:
                 print "Maximum iterations exceeded in Bayesian optimization."
 
-        return (self.x, self.ftrain)
+        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
 
     
     
@@ -1166,7 +1170,7 @@ class NNGlobalSearch(BaseSearch):
             else:
                 print "Maximum number of iterations exceeded in globally optimal approximation algorithm."
 
-        return (self.x, self.ftrain)
+        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
 
 
     
@@ -1350,7 +1354,7 @@ class MultiInitSearch(BaseSolver):
             else:
                 print "maximum number of iterations exceeded."
 
-        return (self.x, self.ftrain)
+        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
 
 
     

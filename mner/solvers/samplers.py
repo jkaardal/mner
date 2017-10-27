@@ -25,6 +25,9 @@ class BaseSampler(object):
         """
         return getattr(self, name, default)
 
+    def __getitem__(self, name):
+        return self.get(name)
+
 
 class InvariantRtypeSampling(BaseSampler):
     """ InvariantRtypeSampling (class)
@@ -74,7 +77,7 @@ class InvariantRtypeSampling(BaseSampler):
         self.initialized = True
 
 
-    def samp_func(self, bounds, num_data, **kwargs):
+    def samp_func(self, space, num_data, **kwargs):
         """ Generate feasible samples.
 
             [inputs] (bounds, num_data) 
@@ -91,10 +94,11 @@ class InvariantRtypeSampling(BaseSampler):
                   genenerate.
 
         """
-        dim = len(bounds)
+        dim = len(space.config_space)
         Z_rand = np.zeros((num_data, dim))
         for k in range(dim):
-            Z_rand[:, k] = np.random.uniform(low=bounds[k][0], high=bounds[k][1], size=num_data)
+            if space.config_space[k]['type'] == 'continuous':
+                Z_rand[:, k] = np.random.uniform(low=space.config_space[k]['domain'][0], high=space.config_space[k]['domain'][1], size=num_data)
 
         for i, r in enumerate(self.rtype):
             if r in self.apply_to and self.red_dim[i] > 1:
@@ -147,7 +151,7 @@ class SplitSignSampling(BaseSampler):
         self.csigns = kwargs.get(self.qualifier + '_csigns', kwargs.get('csigns', None))
 
     
-    def samp_func(self, bounds, num_data, **kwargs):
+    def samp_func(self, space, num_data, **kwargs):
         """Generate feasible samples.
 
             [inputs] (bounds, num_data) 
@@ -168,10 +172,11 @@ class SplitSignSampling(BaseSampler):
         """
         self.csigns = kwargs.get(self.qualifier + '_csigns', kwargs.get('csigns', self.csigns))
 
-        dim = len(bounds)
+        dim = len(space.config_space)
         Z_rand = np.zeros((num_data, dim))
         for k in range(dim):
-            Z_rand[:, k] = np.random.uniform(low=bounds[k][0], high=bounds[k][1], size=num_data)
+            if space.config_space[k]['type'] == 'continuous':
+                Z_rand[:, k] = np.random.uniform(low=space.config_space[k]['domain'][0], high=space.config_space[k]['domain'][1], size=num_data)
 
         for i, r in enumerate(self.rtype):
             if r == "nuclear-norm" and self.red_dim[i] > 1:

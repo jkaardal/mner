@@ -1886,6 +1886,7 @@ class MNEr:
 
         return self.cineq_hess
 
+
     def get(self, name, default=None):
         """ Get attribute, if it exists; otherwise, return default.
 
@@ -1902,6 +1903,8 @@ class MNEr:
         return getattr(self, name, default)
 
 
+    def __getitem__(self, name):
+        return self.get(name)
 
 
 

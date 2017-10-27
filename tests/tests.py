@@ -143,7 +143,7 @@ if demo_type == 1:
     print "Demo 1: find a local minimum on the training set."
     print ""
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
@@ -155,7 +155,7 @@ elif demo_type == 2:
 
     global_solver = mner.solvers.solvers.MultiInitSearch
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, multi_init_search_solver=solver)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, multi_init_search_solver=solver, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
@@ -171,7 +171,7 @@ elif demo_type == 3:
     hypergrid = np.arange(0.0, 0.021, 0.001)
     hypergrid = [np.tile(hypergrid.reshape((hypergrid.size, 1)), (1, rank))]
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
@@ -190,7 +190,7 @@ elif demo_type == 4:
     # constrain the hypergrid to avoid redundancy
     cons = mner.solvers.constraints.SplitSign
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, grid_search_cons=cons)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, grid_search_cons=cons, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
@@ -226,7 +226,7 @@ elif demo_type == 6:
     # customize the sampling function (Monte Carlo will fail for large rank otherwise!)
     sampler = mner.solvers.samplers.SplitSignSampling
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
@@ -251,7 +251,7 @@ elif demo_type == 7:
     kernel_variance = 2.0
     kernel_lengthscale = 0.1
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, float_dtype=float_dtype)
 
     # optimization settings (maxits, exploration_weight)
     settings = [(50, 2.0), (50, 1.0), (50, 0.0)] 
@@ -273,7 +273,7 @@ elif demo_type == 8:
     
     global_solver = mner.solvers.solvers.NNGlobalSearch
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, nn_global_search_solver=solver, nn_global_search_maxiter=100)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, nn_global_search_solver=solver, nn_global_search_maxiter=100, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
@@ -297,7 +297,7 @@ elif demo_type == 9:
     kernel_variance = 2.0
     kernel_lengthscale = 0.1
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, bayes_search_maxits=200)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, bayes_search_maxits=200, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()

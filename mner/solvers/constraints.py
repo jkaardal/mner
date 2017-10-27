@@ -27,6 +27,9 @@ class BaseCons(object):
         """
         return getattr(self, name, default)
 
+    def __getitem__(self, name):
+        return self.get(name)
+
 
 
 class SplitSign(BaseCons):
