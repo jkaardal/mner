@@ -1,3 +1,10 @@
+from __future__ import print_function
+
+import os
+import sys
+here = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+sys.path = [here] + sys.path
+
 import numpy as np
 import theano
 import mner.optimizer
@@ -37,14 +44,14 @@ cv_fraction = 0.2
 # generate correlated Gaussian noise images
 ny = 16
 nx = 16
-nsamp = 100000;
+nsamp = 100000
 
-ndim = ny*nx
+ndim = ny * nx
 
 def GP(x, y, x0, y0):
-    Kinv = 1.0/3.0
-    r = np.array([x-x0, y-y0]).reshape((2, 1))
-    return np.exp(-np.dot(r.T, r)*Kinv)
+    Kinv = 1.0 / 3.0
+    r = np.array([x - x0, y - y0]).reshape((2, 1))
+    return np.exp(-np.dot(r.T, r) * Kinv)
 
 C = np.zeros((ndim, ndim))
 for i in range(ny):
@@ -52,12 +59,12 @@ for i in range(ny):
         c = np.zeros((ny, nx))
         for k in range(ny):
             for l in range(nx):
-                c[l, k] = GP(l, k, j, i);
-        C[:, i*nx+j] = c.ravel()
+                c[l, k] = GP(l, k, j, i)
+        C[:, i * nx + j] = c.ravel()
 
 C = np.dot(C.T, C)
 
-[L, M, R] = np.linalg.svd(C)
+L, M, R = np.linalg.svd(C)
 X = np.dot(np.diag(np.sqrt(M)), R)
 
 s = np.dot(np.random.randn(nsamp, ndim), X)
@@ -74,10 +81,10 @@ def Gauss2D(xi, x0, sx, yi, y0, sy, A, phi):
     xm = np.tile(xi.reshape((1, xi.size)), (yi.size, 1))
     ym = np.tile(yi.reshape((yi.size, 1)), (1, xi.size))
 
-    x = (xm - x0)*np.cos(phi) + (ym - y0)*np.sin(phi)
-    y = (x0 - xm)*np.sin(phi) + (ym - y0)*np.cos(phi)
+    x = (xm - x0) * np.cos(phi) + (ym - y0) * np.sin(phi)
+    y = (x0 - xm) * np.sin(phi) + (ym - y0) * np.cos(phi)
 
-    return A*np.exp(-((x/sx)**2 + (y/sy)**2)/2.0)
+    return A * np.exp(-((x / sx) ** 2 + (y / sy) ** 2) / 2.0)
 
 xi = np.arange(1.0, 17.0, 1.0)
 yi = np.arange(1.0, 17.0, 1.0)
@@ -104,17 +111,18 @@ g = 0.05
 W = np.diag(np.array([1.0, -1.0, -1.0, -1.0, 1.0, 1.0]))
 J = g*np.dot(F, np.dot(W, F.T))
 x = a + np.dot(s, h).ravel() + np.sum(s * np.dot(s, J), axis=1)
-p = 1.0/(1.0 + np.exp(-x))
+p = 1.0 / (1.0 + np.exp(-x))
 
 y = np.zeros((nsamp,))
 rnd = np.random.rand(nsamp,)
-y[(rnd < p)] = 1.0
+y[rnd < p] = 1.0
 
 # test response probability (should be ~0.25)
-#print np.mean(y)
+#print(np.mean(y))
 
 # generate training, cross-validation, and test set Boolean indices
-trainset, cvset, testset, nshift = mner.util.util.generate_dataset_logical_indices(train_fraction, cv_fraction, nsamp, njack)
+trainset, cvset, testset, nshift = mner.util.util.generate_dataset_logical_indices(train_fraction, cv_fraction, nsamp, 
+                                                                                   njack)
 trainset, cvset, testset = mner.util.util.roll_dataset_logical_indices(trainset, cvset, testset, nshift, jack-1)
 datasets = {'trainset': trainset, 'cvset': cvset, 'testset': testset}
 
@@ -124,7 +132,7 @@ cetype = ["UV-linear-insert"]
 rtype = ["nuclear-norm"]
 
 # if J is symmetrized using linear constraints, need to set signs of eigenvalues
-csigns = np.array([1, -1]*(rank/2))
+csigns = np.array([1, -1] * int(rank / 2))
 
 # set scaling of cost function (for each data set)
 fscale = {"trainset": -1, "cvset": -1, "testset": -1}
@@ -140,30 +148,32 @@ lbfgs = 30
 # set up the optimizer and solve
 if demo_type == 1:
     # find a local minimum of the training set
-    print "Demo 1: find a local minimum on the training set."
-    print ""
+    print("Demo 1: find a local minimum on the training set.\n")
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=solver, datasets=datasets, fscale=fscale, 
+                                   csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, 
+                                   iprint=1, factr=factr, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
 elif demo_type == 2:
     # attempt to find the global minimum of the training set
-    print "Demo 2: attempt to find a global minimum on the training set (heuristic)."
-    print ""
+    print("Demo 2: attempt to find a global minimum on the training set (heuristic).\n")
 
     global_solver = mner.solvers.solvers.MultiInitSearch
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, multi_init_search_solver=solver, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=[], solver=global_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, multi_init_search_solver=solver, 
+                                   float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
 elif demo_type == 3:
     # one-dimensional regularization grid search
-    print "Demo 3: one-dimensional grid search to find a minimum on the cross-validation set."
-    print ""
+    print("Demo 3: one-dimensional grid search to find a minimum on the cross-validation set.\n")
 
     grid_solver = mner.solvers.solvers.GridSearch
 
@@ -171,54 +181,60 @@ elif demo_type == 3:
     hypergrid = np.arange(0.0, 0.021, 0.001)
     hypergrid = [np.tile(hypergrid.reshape((hypergrid.size, 1)), (1, rank))]
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, 
+                                   float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
 elif demo_type == 4:
     # multi-dimensional regularization grid search
-    print "Demo 4: multi-dimensional grid search to find a minimum on the cross-validation set."
-    print ""
+    print("Demo 4: multi-dimensional grid search to find a minimum on the cross-validation set.\n")
 
     grid_solver = mner.solvers.solvers.GridSearch
 
     # set up the regularization grid
     hypergrid = np.arange(0.0, 0.11, 0.05)
-    hypergrid = [[hypergrid]*rank]
+    hypergrid = [[hypergrid] * rank]
 
     # constrain the hypergrid to avoid redundancy
     cons = mner.solvers.constraints.SplitSign
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, grid_search_cons=cons, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=grid_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, grid_search_solver=solver, hypergrid=hypergrid, 
+                                   grid_search_cons=cons, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
 elif demo_type == 5:
     # one-dimensional regularization Bayesian optimization
-    print "Demo 5: one-dimensional Bayesian optimization to find a minimum on the cross-validation set."
-    print ""
+    print("Demo 5: one-dimensional Bayesian optimization to find a minimum on the cross-validation set.\n")
 
     bayes_solver = mner.solvers.solvers.BayesSearch
 
     # set up the regularization domain
-    domain = [np.array([0.0, 1.0]*rank).reshape((rank, 2)).T]
+    domain = [np.array([0.0, 1.0] * rank).reshape((rank, 2)).T]
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, 
+                                   bayes_search_domain=domain, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
 elif demo_type == 6:
     # multi-dimensional regularization Bayesian optimization
-    print "Demo 6: multi-dimensional Bayesian optimization to find a minimum on the cross-validation set."
-    print ""
+    print("Demo 6: multi-dimensional Bayesian optimization to find a minimum on the cross-validation set.\n")
 
     bayes_solver = mner.solvers.solvers.BayesSearch
 
     # set up the regularization domain
-    domain = [[np.array([0.0, 1.0])]*rank]
+    domain = [[np.array([0.0, 1.0])] * rank]
     
     # constrain the domain to avoid redundancy
     cons = mner.solvers.constraints.SplitSign
@@ -226,20 +242,23 @@ elif demo_type == 6:
     # customize the sampling function (Monte Carlo will fail for large rank otherwise!)
     sampler = mner.solvers.samplers.SplitSignSampling
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, 
+                                   bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, 
+                                   float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
 elif demo_type == 7:
     # multi-dimensional Bayesian optimization with annealing of the exploration weight
-    print "Demo 7: multi-dimensional Bayesian optimization with annealing of the exploration weight."
-    print ""
+    print("Demo 7: multi-dimensional Bayesian optimization with annealing of the exploration weight.\n")
 
     bayes_solver = mner.solvers.solvers.BayesSearch
 
     # set up the regularization domain
-    domain = [[np.array([0.0, 1.0])]*rank]
+    domain = [[np.array([0.0, 1.0])] * rank]
 
     # constrain the domain to avoid redundancy
     cons = mner.solvers.constraints.SplitSign
@@ -251,7 +270,12 @@ elif demo_type == 7:
     kernel_variance = 2.0
     kernel_lengthscale = 0.1
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, 
+                                   bayes_search_domain=domain, bayes_search_cons=cons, bayes_search_sampler=sampler, 
+                                   bayes_search_kernel_variance_fixed=kernel_variance, 
+                                   bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, float_dtype=float_dtype)
 
     # optimization settings (maxits, exploration_weight)
     settings = [(50, 2.0), (50, 1.0), (50, 0.0)] 
@@ -265,27 +289,29 @@ elif demo_type == 7:
 
 elif demo_type == 8:
     # find solution in the globally optimal domain with minimal nuclear-norm regularization
-    print "Demo 8: globally optimal approximation to the global minimum on the training set."
-    print ""
+    print("Demo 8: globally optimal approximation to the global minimum on the training set.\n")
 
     # greater precision is required for convergence
     factr = 1.0e7
     
     global_solver = mner.solvers.solvers.NNGlobalSearch
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=global_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, nn_global_search_solver=solver, nn_global_search_maxiter=100, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=global_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, nn_global_search_solver=solver, 
+                                   nn_global_search_maxiter=100, float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
 elif demo_type == 9:
     # two-dimensional Bayesian optimization using nuclear-norm and l2-norm regularization
-    print "Demo 9: two-dimensional Bayesian optimization using using nuclear-norm and l2-norm regularization"
+    print("Demo 9: two-dimensional Bayesian optimization using using nuclear-norm and l2-norm regularization.\n")
 
     bayes_solver = mner.solvers.solvers.BayesSearch
 
     # set up the regularization domain
-    domain = [np.array([0.0, 1.0]*rank).reshape((rank, 2)).T]
+    domain = [np.array([0.0, 1.0] * rank).reshape((rank, 2)).T]
 
     # include l2-norm signifier
     rtype.append("l2-norm")
@@ -297,14 +323,21 @@ elif demo_type == 9:
     kernel_variance = 2.0
     kernel_lengthscale = 0.1
 
-    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, bayes_search_domain=domain, bayes_search_kernel_variance_fixed=kernel_variance, bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, bayes_search_maxits=200, float_dtype=float_dtype)
+    opt = mner.optimizer.Optimizer(y, s, rank, cetype=cetype, rtype=rtype, solver=bayes_solver, datasets=datasets, 
+                                   fscale=fscale, csigns=csigns, lbfgs=lbfgs, precompile=True, compute_hess=False, 
+                                   verbosity=2, iprint=1, factr=factr, bayes_search_solver=solver, 
+                                   bayes_search_domain=domain, bayes_search_kernel_variance_fixed=kernel_variance, 
+                                   bayes_search_kernel_lengthscale_fixed=kernel_lengthscale, bayes_search_maxits=200, 
+                                   float_dtype=float_dtype)
 
     # optimize the model
     x, ftrain = opt.optimize()
 
-print "final ftrain = " + str(ftrain)
-print "final fcv = " + str(opt.compute_set("cv"))
-print "final test = " + str(opt.compute_set("test"))
+print('final ftrain = {}\nfinal fcv = {}\nfinal test = {}'.format(
+    ftrain,
+    opt.compute_set('cv'),
+    opt.compute_set('test'),
+))
 
 # copy ground truth
 a_GT = np.copy(a)
@@ -316,11 +349,11 @@ V = np.dot(U, np.diag(csigns))
 
 # form J and symmetrize then compute components
 Jsym = np.dot(U, V.T)
-Jsym = 0.5*(Jsym + Jsym.T)
-[u, _, _] = np.linalg.svd(Jsym)
+Jsym = 0.5 * (Jsym + Jsym.T)
+u, _, _ = np.linalg.svd(Jsym)
 
 # compute the ground truth
-[u_GT, _, _] = np.linalg.svd(0.5*(J+J.T))
+u_GT, _, _ = np.linalg.svd(0.5 * (J + J.T))
 
 if matplotlib_loaded and show_plot:
     plt.clf()
@@ -334,11 +367,11 @@ if matplotlib_loaded and show_plot:
 
     plt.clf()
     for i in range(6):
-        plt.subplot(2, 6, i+1)
-        cm = np.max(np.abs(u_GT[:,i]))
-        plt.imshow(np.reshape(u_GT[:,i], (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
+        plt.subplot(2, 6, i + 1)
+        cm = np.max(np.abs(u_GT[:, i]))
+        plt.imshow(np.reshape(u_GT[:, i], (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
     for i in range(6):
-        plt.subplot(2, 6, i+7)
-        cm = np.max(np.abs(u[:,i]))
-        plt.imshow(np.reshape(u[:,i], (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
+        plt.subplot(2, 6, i + 7)
+        cm = np.max(np.abs(u[:, i]))
+        plt.imshow(np.reshape(u[:, i], (ny, nx)), aspect='equal', interpolation='none', clim=(-cm, cm))
     plt.show()

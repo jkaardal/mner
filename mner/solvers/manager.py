@@ -7,8 +7,26 @@ import numpy as np
 
 """
 
-# regularization manager
+class DefaultSampler:
+    """ The default sampler subclass tells the Bayesian optimization
+        software to use its domain sampler for initializing the
+        acquisition function optimization.
 
+    """
+
+    def __init__(self, parent=dict(), **kwargs):
+        """ Initialize the default sampler.
+
+            [inputs] (parent=dict(), **kwargs)
+                parent: does nothing here.
+
+            [returns] None
+
+        """
+        self.samp_func = None
+
+
+# regularization manager
 class HyperManager(object):
     """ HyperManager (class)
 
@@ -98,7 +116,7 @@ class HyperManager(object):
                     class that imposes the constraints (see
                     mner.solvers.constraints.py for more information).
                   - (qualifier + )sampler:
-                    (default=HyperManager.default_sampler) function
+                    (default=DefaultSampler) function
                     that returns feasible hyperparameter vectors
                   - float_dtype: (default=np.float64) floating-point
                     data type
@@ -121,7 +139,8 @@ class HyperManager(object):
         if self.cons is not None:
             self.cons = [self.cons]
         # get sampler function
-        self.sampler = kwargs.get(qualifier + '_sampler', kwargs.get('sampler', parent.get('sampler', self.default_sampler)))
+        self.sampler = kwargs.get(qualifier + '_sampler', kwargs.get('sampler', parent.get('sampler', 
+                                                                                           DefaultSampler)))
         
         # initialize unset class variables
         self.index = None
@@ -144,27 +163,7 @@ class HyperManager(object):
         self.setup(**kwargs)
 
         self.initialized = True
-
-
-    class default_sampler:
-        """ The default sampler subclass tells the Bayesian optimization
-            software to use its domain sampler for initializing the
-            acquisition function optimization.
-
-        """
-
-        def __init__(self, parent=dict(), **kwargs):
-            """ Initialize the default sampler.
-
-                [inputs] (parent=dict(), **kwargs)
-                    parent: does nothing here.
-
-                [returns] None
-
-            """
-            self.samp_func = None
         
-
     def setup(self, **kwargs):
         """ Set-up the hyperparameter manager. The set-up procedure
             automatically determines the size of each type of
@@ -193,7 +192,6 @@ class HyperManager(object):
                 # initialize sampling function
                 self.sampler = self.sampler(self, **kwargs)
                         
-
     def check_feasibility(self, **kwargs):
         """ Check the constraints to see if a given hyperparameter state is
             feasible.
@@ -214,7 +212,6 @@ class HyperManager(object):
                     feasible = False
                     break
         return feasible
-
 
     def build_index(self, **kwargs):
         """ Build an index that holds the span of the elements that make up
@@ -238,7 +235,6 @@ class HyperManager(object):
         self.index = self.index.ravel()
         return self.index
             
-
     def build_red_index(self, **kwargs):
         """ Build an index that holds the span of the elements that make up
             the hyperparameters of each type in rtype as they appear
@@ -261,7 +257,6 @@ class HyperManager(object):
         self.red_index = self.red_index.ravel()
         return self.red_index
 
-
     def build_dim(self, **kwargs):
         """ Create a one-dimensional numpy array that holds the number of
             hyperparameters of each type in rtype (in order) in the
@@ -281,7 +276,6 @@ class HyperManager(object):
         self.dim = self.dim.ravel()
         return self.dim
 
-
     def build_red_dim(self, **kwargs):
         """ Create a one-dimensional numpy array that holds the number of
             hyperparameters of each type in rtype (in order) in the
@@ -297,10 +291,10 @@ class HyperManager(object):
         """
         self.red_dim = np.zeros((0, 1), dtype=np.uint32)
         for i, r in enumerate(self.rtype):
-            self.red_dim = np.concatenate([self.red_dim, np.array([self.get_red_dim(r, i, **kwargs)]).reshape((1, 1))], axis=0)
+            self.red_dim = np.concatenate([self.red_dim, np.array([self.get_red_dim(r, i, **kwargs)]).reshape((1, 1))], 
+                                          axis=0)
         self.red_dim = self.red_dim.ravel()
         return self.red_dim
-
 
     def build_length(self, **kwargs):
         """ Build an integer numpy array of hypergrid lengths for each
@@ -319,7 +313,6 @@ class HyperManager(object):
             self.length = np.concatenate([self.length, self.get_length(r, i, **kwargs)], axis=0)
         self.length = self.length.ravel()
         return self.length
-
 
     def build_state_from_grid(self, indices=None, **kwargs):
         """ Given indices for each element of the reduced hyperparameter space,
@@ -340,12 +333,12 @@ class HyperManager(object):
         for i, r in enumerate(self.rtype):
             if self.grid is not None and self.grid[i] is not None:
                 if isinstance(indices, dict):
-                    self.state[r] = self.get_grid_state(r, i, indices[r][self.red_index[i]:self.red_index[i+1]], **kwargs)
+                    self.state[r] = self.get_grid_state(r, i, indices[r][self.red_index[i]:self.red_index[i+1]], 
+                                                        **kwargs)
                 else:
                     self.state[r] = self.get_grid_state(r, i, indices[self.red_index[i]:self.red_index[i+1]], **kwargs)
         return self.state
-
-                    
+                  
     def build_state_from_vector(self, v=None, **kwargs):
         """ Given a vector of hyperparameters (defined in the full
             hyperparameter space), build the state dictionary.
@@ -362,7 +355,6 @@ class HyperManager(object):
         """
         for i, r in enumerate(self.rtype):
             self.state[r] = v[self.index[i]:self.index[i+1]]
-
 
     def build_state_from_red_vector(self, v=None, **kwargs):
         """ Given a vector of hyperparameters defined in the reduced
@@ -387,7 +379,6 @@ class HyperManager(object):
                     self.state[r] = np.tile(self.state[r].reshape((1, 1)), (self.dim[i], 1)).ravel()
         return self.state
 
-
     def build_vector_from_state(self, **kwargs):
         """ Build a hyperparameter vector defined in the full hyperparameter
             space from the hyperparameter state dictionary.
@@ -403,7 +394,6 @@ class HyperManager(object):
         for i, r in enumerate(self.rtype):
             v[self.index[i]:self.index[i+1]] = np.copy(self.state[r])
         return v
-
 
     def build_red_vector_from_state(self, **kwargs):
         """ Build a hyperparameter vector defined in the reduced
@@ -425,7 +415,6 @@ class HyperManager(object):
                 v[self.red_index[i]:self.red_index[i+1]] = self.state[r][self.index[i]:self.index[i+1]]
         return v
 
-
     def build_red_vector_from_vector(self, v=None, **kwargs):
         """ Build a hyperparameter vector defined in the reduced
             hyperparameter space from a hyperparameter vector defined
@@ -444,7 +433,6 @@ class HyperManager(object):
         self.build_state_from_vector(v, **kwargs)
         return self.build_red_vector_from_state(**kwargs)
 
-
     def build_vector_from_red_vector(self, v=None, **kwargs):
         """ Build a hyperparameter vector defined in the full hyperparameter
             space from a hyperparameter vector defined in the reduced
@@ -461,8 +449,7 @@ class HyperManager(object):
         """
         self.build_state_from_red_vector(v, **kwargs)
         return self.build_vector_from_state(**kwargs)
-    
-    
+      
     def update_model(self, **kwargs):
         """ Update the hyperparameters in the training model.
 
@@ -472,7 +459,6 @@ class HyperManager(object):
         for i, r in enumerate(self.rtype):
             self.train_model.assign_reg_params(r, self.state[r], **kwargs)
         
-
     def get_dim(self, r=None, idx=None, **kwargs):
         """ Get the number of dimensions in the full hyperparameter space of
             type r (from rtype).
@@ -513,7 +499,6 @@ class HyperManager(object):
 
         return None
 
-
     def get_red_dim(self, r=None, idx=None, **kwargs):
         """ Get the number of dimensions in the reduced hyperparameter space
             of type r (from rtype).
@@ -549,7 +534,6 @@ class HyperManager(object):
             return 0
 
         return None
-
 
     def get_length(self, r=None, idx=None, **kwargs):
         """ Get length of the grid(s) for each hyperparameter of type r from
@@ -589,7 +573,6 @@ class HyperManager(object):
 
         return None
 
-
     def get_grid_state(self, r=None, idx=None, indices=None, **kwargs):
         """ Get grid elements of type r in the full hyperparameter space.
 
@@ -628,7 +611,6 @@ class HyperManager(object):
         
         return None
 
-
     def format_domain(self, **kwargs):
         """ Format the domain as a list of dictionaries (assumes
             hyperparameters are continuous) for use in the Bayesian
@@ -657,20 +639,28 @@ class HyperManager(object):
             elif isinstance(self.domain[i], list) or isinstance(self.domain[i], tuple):
                 tmp = []
                 for j in range(len(self.domain[i])):
-                    tmp.append({'name': 'hyperparam_' + str(idx), 'type': 'continuous', 'domain': (self.domain[i][j][0], self.domain[i][j][-1])})
-                    #tmp.append({'name': 'hyperparam_' + str(idx), 'type': 'continuous', 'domain': (self.domain[i][j][0], self.domain[i][j][-1]), 'colsize': 1})
+                    tmp.append({
+                        'name': 'hyperparam_' + str(idx), 
+                        'type': 'continuous', 
+                        'domain': (self.domain[i][j][0], self.domain[i][j][-1])
+                    })
                     idx += 1
                 self.domain_f.extend(tmp)
             else:
                 if self.domain[i].shape[1] > 0:
-                    self.domain_f.append({'name': 'hyperparam_' + str(idx), 'type': 'continuous', 'domain': (self.domain[i][0, 0], self.domain[i][-1, 0])})
-                    #self.domain_f.append({'name': 'hyperparam_' + str(idx), 'type': 'continuous', 'domain': (self.domain[i][0, 0], self.domain[i][-1, 0]), 'colsize': self.domain[i].shape[1]})
+                    self.domain_f.append({
+                        'name': 'hyperparam_' + str(idx), 
+                        'type': 'continuous', 
+                        'domain': (self.domain[i][0, 0], self.domain[i][-1, 0])
+                    })
                 else:
-                    self.domain_f.append({'name': 'hyperparam_' + str(idx), 'type': 'continuous', 'domain': (self.domain[i][0], self.domain[i][-1])})
-                    #self.domain_f.append({'name': 'hyperparam_' + str(idx), 'type': 'continuous', 'domain': (self.domain[i][0], self.domain[i][-1]), 'colsize': 1})
+                    self.domain_f.append({
+                        'name': 'hyperparam_' + str(idx), 
+                        'type': 'continuous', 
+                        'domain': (self.domain[i][0], self.domain[i][-1])
+                    })
                 idx += 1
         return self.domain_f
-
 
     def format_cons(self, **kwargs):
         """ Format the constraints as a list of dictionaries for use in the

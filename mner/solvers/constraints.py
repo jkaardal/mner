@@ -31,7 +31,6 @@ class BaseCons(object):
         return self.get(name)
 
 
-
 class SplitSign(BaseCons):
     """ SplitSign (class)
 
@@ -41,7 +40,6 @@ class SplitSign(BaseCons):
         'UV-linear-insert'.
 
     """
-
     def __init__(self, parent=dict(), **kwargs):
         """ Initialize the split sign constraints.
 
@@ -62,8 +60,7 @@ class SplitSign(BaseCons):
         """
         self.qualifier = parent.get('qualifier', "")
         self.csigns = kwargs.get(self.qualifier + '_csigns', kwargs.get('csigns', None))
-        self.initialized = True
-        
+        self.initialized = True 
 
     def constrain(self, parent=dict(), **kwargs):
         """ Check the constraints to determine if a set of nuclear-norm
@@ -107,7 +104,6 @@ class SplitSign(BaseCons):
         # feasible
         return True
 
-
     def constrain_str(self, parent=dict(), **kwargs):
         """ Build string expressions for the constraints to be used in the
             Bayesian optimization software.
@@ -145,14 +141,18 @@ class SplitSign(BaseCons):
             if r == "nuclear-norm" and parent["red_dim"][i] > 1:
                 ind_pos = np.where(self.csigns > 0)[0]
                 ind_neg = np.where(self.csigns < 0)[0]
-                for j in range(ind_pos.size-1):
-                    c_str.append('x[:,' + str(parent["red_index"][i]+ind_pos[j]) + '] - x[:,' + str(parent["red_index"][i]+ind_pos[j+1]) + ']')
-                for j in range(ind_neg.size-1):
-                    c_str.append('x[:,' + str(parent["red_index"][i]+ind_neg[j]) + '] - x[:,' + str(parent["red_index"][i]+ind_neg[j+1]) + ']')
+                for j in range(ind_pos.size - 1):
+                    c_str.append('x[:, {}] - x[:, {}]'.format(
+                        parent["red_index"][i]+ind_pos[j],
+                        parent["red_index"][i]+ind_pos[j + 1],
+                    ))
+                for j in range(ind_neg.size - 1):
+                    c_str.append('x[:, {}] - x[:, {}]'.format(
+                        parent["red_index"][i]+ind_neg[j],
+                        parent["red_index"][i]+ind_neg[j + 1],
+                    ))
         return c_str
 
-
-    
 
 class InvariantRtype(BaseCons):
     """ InvariantRtype (class)
@@ -189,7 +189,6 @@ class InvariantRtype(BaseCons):
             self.apply_to = [self.apply_to]
 
         self.initialized = True
-
         
     def constrain(self, parent=dict(), **kwargs):
         """ Check the constraints to determine if any of the hyperparameters
@@ -219,7 +218,6 @@ class InvariantRtype(BaseCons):
                     return False
         # feasible
         return True
-
 
     def constrain_str(self, parent=dict(), **kwargs):
         """ Build string expressions for the constraints to be used in the
@@ -252,7 +250,8 @@ class InvariantRtype(BaseCons):
         for i, r in enumerate(parent["rtype"]):
             if r in self.apply_to and parent["red_dim"][i] > 1:
                 for j in range(parent["red_dim"][i]-1):
-                    c_str.append('x[:,' + str(parent["red_index"][i]+j) + '] - x[:,' + str(parent["red_index"][i]+1+j) + ']')
+                    c_str.append('x[:, {}] - x[:, {}]'.format(
+                      parent["red_index"][i] + j,
+                      parent["red_index"][i] + 1 + j,
+                    ))
         return c_str
-
-

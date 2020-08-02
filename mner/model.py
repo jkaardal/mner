@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 import theano.tensor as T
 import theano
@@ -13,6 +15,7 @@ from scipy.linalg import svd
 
 """
 
+
 # low-rank MNE model class
 class MNEr:
     """ MNEr (class)
@@ -23,9 +26,10 @@ class MNEr:
 
     """
 
-
     # class initialization
-    def __init__(self, resp, feat, rank, cetype=None, citype=None, rtype=None, fscale=1.0, use_vars={'avar': True, 'hvar': True, 'UVvar': True}, use_consts={'aconst': False, 'hconst': False, 'UVconst': False, 'Jconst': False}, **kwargs):
+    def __init__(self, resp, feat, rank, cetype=None, citype=None, rtype=None, fscale=1.0, 
+                 use_vars={'avar': True, 'hvar': True, 'UVvar': True}, 
+                 use_consts={'aconst': False, 'hconst': False, 'UVconst': False, 'Jconst': False}, **kwargs):
         """Initialize MNEr class instantiation.
 
             Initialize the class instantiation and some basic set-up
@@ -150,7 +154,8 @@ class MNEr:
         # initialize the counter of which inequality constraints will be applied via the method of Lagrange multipliers
         self.num_lagrange_citypes = 0
 
-        # get the list of regularization penalties to be applied through addition of a penalty function to the objective function, if any
+        # get the list of regularization penalties to be applied through addition of a penalty function to the objective 
+        # function, if any
         if rtype is None:
             self.rtype = [] 
         elif isinstance(rtype, str):
@@ -161,7 +166,8 @@ class MNEr:
         # get the scale of the negative log-likelihood objective function
         self.fscale = fscale
 
-        # get the dictionary signalling which variables to optimize with respect to and set defaults if they do not exist in the dictionary
+        # get the dictionary signalling which variables to optimize with respect to and set defaults if they do not 
+        # exist in the dictionary
         self.use_vars = use_vars
         if 'avar' not in self.use_vars:
             self.use_vars['avar'] = True
@@ -170,7 +176,8 @@ class MNEr:
         if 'UVvar' not in self.use_vars:
             self.use_vars['UVvar'] = True
 
-        # get the dictionary signalling whether some additional constants should be included in the model (these are not optimized) and fill any missing keys with the default values
+        # get the dictionary signalling whether some additional constants should be included in the model (these are not 
+        # optimized) and fill any missing keys with the default values
         self.use_consts = use_consts
         if 'aconst' not in self.use_consts:
             self.use_consts['aconst'] = False
@@ -212,14 +219,16 @@ class MNEr:
             self.Jconst = theano.shared(np.zeros((self.ndim, self.ndim)).astype(self.float_dtype), name="Jconst")
 
         # get signs for the linear equality constraints and initialize on the device
-        csigns = kwargs.get("csigns", None)
+        csigns = kwargs.get("csigns")
         if isinstance(csigns, list) or isinstance(csigns, tuple):
             csigns = np.array(csigns).astype(self.float_dtype)
         if csigns is not None:
             self.init_csigns(csigns)
 
         # get x_dev, if provided
-        self.x_dev = kwargs.get('x_dev', None)
+        self.x_dev = kwargs.get('x_dev')
+        # get lda_dev, if provided
+        self.lda_dev = kwargs.get('lda_dev')
 
         # initialize all Theano expressions that may be used in the optimization to None
         self.f = None
@@ -243,7 +252,6 @@ class MNEr:
         self.cineq_jaco = None
         self.cineq_hess = None
         
-
     # miscellaneous functions
     def UV_to_Q(self, U, V, **kwargs):
         """ Construct Q from U and V where Q via concatenation.
@@ -263,7 +271,6 @@ class MNEr:
             return np.concatenate([U, V], axis=0)
         else:
             return T.concatenate([U, V], axis=0)
-
 
     def Q_to_UV(self, Q, **kwargs):
         """ Construct U and V from Q.
@@ -298,8 +305,7 @@ class MNEr:
             else:
                 V = Q[self.ndim:, :]
 
-            return (U, V)
-
+            return U, V
 
     def decompose_J(self, J, **kwargs):
         """ Decompose J using the singular value decomposition.
@@ -318,9 +324,9 @@ class MNEr:
 
         """
         L, S, R = svd(0.5*(J+J.T))
-        return (L, S, R)
+        return L, S, R
 
-    
+   
     def J_to_UV(self, J, **kwargs):
         """ Construct U and V through singular value decomposition of J.
 
@@ -336,8 +342,7 @@ class MNEr:
         L, S, R = self.decompose_J(J)
         U = np.dot(L, np.diag(np.sqrt(S)))
         V = np.dot(R.T, np.diag(np.sqrt(S)))
-        return (U, V)
-
+        return U, V
 
     def J_to_Q(self, J, **kwargs):
         """ Construct Q through singular value decomposition of J.
@@ -354,7 +359,6 @@ class MNEr:
         Q = np.concatenate([U, V], axis=0)
         return Q
 
-
     def UV_to_J(self, U, V, **kwargs):
         """ Construct J from the outer product of matrices U and V.
 
@@ -368,8 +372,7 @@ class MNEr:
 
         """
         J = np.dot(U, V.T)
-        return 0.5*(J+J.T)
-
+        return 0.5 * (J + J.T)
 
     def Q_to_J(self, Q, **kwargs):
         """ Construct J from Q.
@@ -382,9 +385,8 @@ class MNEr:
                   = np.dot(U, V.T) (symmetrized).
 
         """
-        ndim = Q.shape[0]/2
+        ndim = Q.shape[0] / 2
         return self.UV_to_J(Q[:ndim, :], Q[ndim:, :], **kwargs)
-
 
     def vec_to_weights(self, x, **kwargs):
         """ Convert a weight vector to a scalar, vector, matrix, and a possible
@@ -413,35 +415,34 @@ class MNEr:
         else:
             a = None
         if self.use_vars['hvar']:
-            h = x[offset:self.ndim+offset]
+            h = x[offset:self.ndim + offset]
             offset += self.ndim
         else:
             h = None
         if self.use_vars['UVvar']:
             if "UV-linear-insert-relaxed" in self.cetype:
-                Q = x[offset:offset+self.rank*self.ndim].reshape((self.rank, self.ndim)).T
-                offset += self.rank*self.ndim
-                w = x[offset:offset+self.rank]
+                Q = x[offset:offset + self.rank * self.ndim].reshape((self.rank, self.ndim)).T
+                offset += self.rank * self.ndim
+                w = x[offset:offset + self.rank]
                 offset += self.rank
             elif "UV-linear-insert" in self.cetype:
-                Q = x[offset:offset+self.rank*self.ndim].reshape((self.rank, self.ndim)).T
-                offset += self.rank*self.ndim
+                Q = x[offset:offset + self.rank * self.ndim].reshape((self.rank, self.ndim)).T
+                offset += self.rank * self.ndim
                 w = None
             elif "UV-linear-relaxed" in self.cetype:
-                Q = x[offset:offset+2*self.rank*self.ndim].reshape((self.rank, 2*self.ndim)).T
-                offset += 2*self.rank*self.ndim
-                w = x[offset:offset+self.rank]
+                Q = x[offset:offset + 2 * self.rank * self.ndim].reshape((self.rank, 2 * self.ndim)).T
+                offset += 2 * self.rank * self.ndim
+                w = x[offset:offset + self.rank]
                 offset += self.rank
             else:
-                Q = x[offset:offset+2*self.rank*self.ndim].reshape((self.rank, 2*self.ndim)).T
-                offset += 2*self.rank*self.ndim
+                Q = x[offset:offset + 2 * self.rank * self.ndim].reshape((self.rank, 2 * self.ndim)).T
+                offset += 2 * self.rank * self.ndim
                 w = None
         else:
             Q = None
             w = None
 
-        return (a, h, Q, w)
-
+        return a, h, Q, w
 
     def weights_to_vec(self, a, h, Q, **kwargs):
         """ Convert a scalar, vector, and matrix to a weight vector.
@@ -485,7 +486,6 @@ class MNEr:
 
         return x    
 
-
     def assign_aconst(self, a, **kwargs):
         """ Set value of aconst on device.
 
@@ -494,7 +494,6 @@ class MNEr:
 
         """
         self.aconst.set_value(a.astype(self.float_dtype))
-
 
     def update_aconst(self, da, **kwargs):
         """ Update value of aconst on device.
@@ -505,7 +504,6 @@ class MNEr:
         """
         self.assign_aconst(self.aconst.get_value() + da.astype(self.float_dtype))
     
-
     def assign_hconst(self, h, **kwargs):
         """ Set value of hconst on device.
 
@@ -515,7 +513,6 @@ class MNEr:
         """
         self.hconst.set_value(h.astype(self.float_dtype))
 
-
     def update_hconst(self, dh, **kwargs):
         """ Update value of hconst on device.
 
@@ -524,7 +521,6 @@ class MNEr:
 
         """
         self.assign_hconst(self.hconst.get_value() + dh.astype(self.float_dtype))
-
 
     def assign_Jconst(self, U=None, V=None, J=None, **kwargs):
         """ Set value of Jconst on device.
@@ -545,7 +541,6 @@ class MNEr:
             assert J is not None
 
             self.Jconst.set_value(J.astype(self.float_dtype))
-
 
     def update_Jconst(self, dU=None, dV=None, dJ=None, **kwargs):
         """ Update value of Jconst on device.
@@ -572,7 +567,6 @@ class MNEr:
 
             self.Jconst.set_value(self.Jconst.get_value() + dJ.astype(self.float_dtype))
 
-
     def assign_Uconst(self, U=None, J=None, **kwargs):
         """ Set value of Uconst on device.
 
@@ -587,9 +581,8 @@ class MNEr:
             self.Uconst.set_value(U)
         else:
             assert J is not None
-            U, V = self.J_to_UV(J)
+            U, _ = self.J_to_UV(J)
             self.Uconst.set_value(U)
-
 
     def assign_Vconst(self, V=None, J=None, **kwargs):
         """ Set value of Vconst on device.
@@ -605,9 +598,8 @@ class MNEr:
             self.Vconst.set_value(V)
         else:
             assert J is not None
-            U, V = self.J_to_UV(J)
+            _, V = self.J_to_UV(J)
             self.Vconst.set_value(V)
-
 
     def assign_UVconst(self, U=None, V=None, J=None, **kwargs):
         """ Set values of Uconst and Vconst on device.
@@ -630,7 +622,6 @@ class MNEr:
             self.Uconst.set_value(U)
             self.Vconst.set_value(V)
 
-
     def update_Uconst(self, dU=None, dJ=None, **kwargs):
         """ Update value of Uconst on device.
 
@@ -645,9 +636,8 @@ class MNEr:
             self.Uconst.set_value(self.Uconst.get_value() + dU)
         else:
             assert dJ is not None
-            dU, dV = self.J_to_UV(dJ)
+            dU, _ = self.J_to_UV(dJ)
             self.Uconst.set_value(self.Uconst.get_value() + dU)
-
 
     def update_Vconst(self, dV=None, dJ=None, **kwargs):
         """ Update value of Vconst on device.
@@ -663,9 +653,8 @@ class MNEr:
             self.Vconst.set_value(self.Vconst.get_value() + dV)
         else:
             assert dJ is not None
-            dU, dV = self.J_to_UV(dJ)
+            _, dV = self.J_to_UV(dJ)
             self.Vconst.set_value(self.Vconst.get_value() + dV)
-
 
     def update_UVconst(self, dU=None, dV=None, dJ=None, **kwargs):
         """ Update values of Uconst and Vconst on device.
@@ -688,7 +677,6 @@ class MNEr:
             self.Uconst.set_value(self.Uconst.get_value() + dU)
             self.Vconst.set_value(self.Vconst.get_value() + dV)
 
-
     def assign_reg_params(self, rtype, vals, **kwargs):
         """ Set value of regularization parameter(s) of a regularization
             penalty type.
@@ -702,10 +690,10 @@ class MNEr:
         size = kwargs.get('size', 1)
         idx = self.rtype.index(rtype)
         if size > 1:
-            self.reg_params[idx].set_value(np.tile(vals.reshape((vals.size,1)), (size, 1)).ravel().astype(self.float_dtype))
+            self.reg_params[idx].set_value(
+                np.tile(vals.reshape((vals.size, 1)), (size, 1)).ravel().astype(self.float_dtype))
         else:
-            self.reg_params[idx].set_value(vals.astype(self.float_dtype))
-        
+            self.reg_params[idx].set_value(vals.astype(self.float_dtype))     
         
     def init_csigns(self, csigns, **kwargs):
         """ Initialize csigns for the linear equality constraints.  Do NOT use
@@ -721,7 +709,6 @@ class MNEr:
         if isinstance(csigns, list) or isinstance(csigns, tuple):
             csigns = np.array(csigns)
         self.csigns = theano.shared(csigns.astype(self.float_dtype), name="csigns")
-
         
     def assign_csigns(self, csigns, **kwargs):
         """ Set csigns for the linear equality constraints.
@@ -734,7 +721,6 @@ class MNEr:
         if isinstance(csigns, list) or isinstance(csigns, tuple):
             csigns = np.array(csigns)
         self.csigns.set_value(csigns.astype(self.float_dtype))
-
         
     def update_csigns(self, U=None, V=None, J=None, **kwargs):
         """ Update csigns for the linear equality constraints by analyzing the
@@ -762,8 +748,7 @@ class MNEr:
             assert J is not None
             U, V = self.J_to_UV(J)
             self.update_csigns(U=U, V=V, J=None)
-
-            
+        
     def unroll_triu(self, idx, v, M, k, **kwargs):
         """ Unroll the upper triangle of a Theano tensor.
 
@@ -781,11 +766,10 @@ class MNEr:
                   triangle of M of shape (ndim*(ndim+1)/2,)
 
         """
-        idxA = idx*self.ndim-(idx-1)*idx/2-k*idx
-        idxB = (idx+1)*self.ndim-idx*(idx+1)/2-k*(idx+1)
-        v = T.set_subtensor(v[idxA:idxB], M[idx, idx+k:])
+        idxA = idx * self.ndim - (idx - 1) * idx / 2 - k * idx
+        idxB = (idx + 1) * self.ndim - idx * (idx + 1) / 2 - k * (idx + 1)
+        v = T.set_subtensor(v[idxA:idxB], M[idx, idx + k:])
         return v
-
 
     # default weight initialization
     def init_weights(self, **kwargs):
@@ -830,8 +814,7 @@ class MNEr:
             self.w = None
 
         self.x = self.weights_to_vec(self.a, self.h, self.Q, w=self.w)
-        return (self.a, self.h, self.Q, self.w)
-
+        return self.a, self.h, self.Q, self.w
 
     def init_weights_feas(self, **kwargs):
         """ Initialize feasible a, h, Q, and x (and w) to internal variables.
@@ -906,8 +889,7 @@ class MNEr:
             self.w = None
 
         self.x = self.weights_to_vec(self.a, self.h, self.Q, w=self.w)
-        return (self.a, self.h, self.Q, self.w)
-
+        return self.a, self.h, self.Q, self.w
 
     def init_vec(self, **kwargs):
         """ Intialize a, h, Q, and x (and w) to internal variables.
@@ -921,7 +903,6 @@ class MNEr:
         self.init_weights()
         return self.x
 
-
     def init_vec_feas(self, **kwargs):
         """ Initialize feasible a, h, Q, and x (and w) to internal
             variables. Returns x.
@@ -934,7 +915,6 @@ class MNEr:
         """
         self.init_weights_feas()
         return self.x
-
 
     # Theano symbolic expressions
     def arg_expr(self, x=None, **kwargs):
@@ -998,7 +978,6 @@ class MNEr:
         self.arg = arg
         return arg
 
-
     def prob_expr(self, x=None, **kwargs):
         """ Construct an expression for the probability (logistic) function.
 
@@ -1017,7 +996,6 @@ class MNEr:
 
         self.P =  P
         return P
-
 
     def calc_dLdJ(self, x=None, **kwargs):
         """ Construct an expression for the matrix derivative of the negative
@@ -1040,7 +1018,6 @@ class MNEr:
         # returns 'K'
         return T.dot(self.feat.T * (P - self.resp), self.feat) * self.fscale
 
-
     def reg_expr(self, x=None, **kwargs):
         """ Construct an expression for the regularization penalty functions.
 
@@ -1054,7 +1031,7 @@ class MNEr:
         if x is None:
             x = self.x_dev
 
-        a, h, Q, w = self.vec_to_weights(x)
+        _, h, Q, w = self.vec_to_weights(x)
         if self.use_vars['UVvar']:
             U, V = self.Q_to_UV(Q)
         if "UV-linear-insert-relaxed" in self.cetype:
@@ -1064,13 +1041,16 @@ class MNEr:
         self.reg_params = [[]]*len(self.rtype)
         if "nuclear-norm" in self.rtype:
             idx = self.rtype.index("nuclear-norm")
-            self.reg_params[idx] = theano.shared(np.zeros((self.rank,)).astype(self.float_dtype), name="reg_params_nuclear-norm")
+            self.reg_params[idx] = theano.shared(np.zeros((self.rank,)).astype(self.float_dtype), 
+                                                 name="reg_params_nuclear-norm")
             if "UV-linear-insert-relaxed" in self.cetype:
-                l += 0.5 * T.sum( (U ** 2 + V ** 2) * T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)) )
+                l += 0.5 * T.sum((U ** 2 + V ** 2) * 
+                                 T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)))
             elif "UV-linear-insert" in self.cetype:
-                l += 0.5 * T.sum( (U ** 2 + V ** 2) * T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)) )
+                l += 0.5 * T.sum((U ** 2 + V ** 2) * 
+                                 T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)))
             else:
-                l += 0.5 * T.sum( (Q ** 2) * T.tile(self.reg_params[idx].reshape((1, self.rank)), (2*self.ndim, 1)) )
+                l += 0.5 * T.sum((Q ** 2) * T.tile(self.reg_params[idx].reshape((1, self.rank)), (2 * self.ndim, 1)))
 
         if "l2-norm" in self.rtype:
             idx = self.rtype.index("l2-norm")
@@ -1079,7 +1059,6 @@ class MNEr:
 
         self.l = l
         return l
-
 
     def reg_grad_expr(self, x=None, **kwargs):
         """ Construct an expression for the gradient of the regularization
@@ -1095,7 +1074,7 @@ class MNEr:
         if x is None:
             x = self.x_dev
 
-        a, h, Q, w = self.vec_to_weights(x)
+        _, h, Q, w = self.vec_to_weights(x)
         if self.use_vars['UVvar']:
             U, V = self.Q_to_UV(Q)
         if "UV-linear-insert-relaxed" in self.cetype:
@@ -1110,17 +1089,22 @@ class MNEr:
             if self.use_vars['hvar']:
                 offset += self.ndim
             if "UV-linear-insert-relaxed" in self.cetype:
-                dldQ = (U * T.tile((T.ones((1, self.rank)) + w.reshape((1, self.rank)))*self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1))).T.reshape((U.size, 1))
-                dldw = 0.5 * T.sum( U ** 2 * T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)), axis=0).T.reshape((w.size, 1))
+                dldQ = (U * T.tile((T.ones((1, self.rank)) + w.reshape((1, self.rank))) * 
+                        self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1))).T.reshape((U.size, 1))
+                dldw = 0.5 * T.sum(U ** 2 * T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1)), 
+                                   axis=0).T.reshape((w.size, 1))
             elif "UV-linear-insert" in self.cetype:
-                dldQ = (2.0 * U * T.tile(self.reg_params[idx].reshape((1, self.rank)), (self.ndim, 1))).T.reshape((U.size, 1))
+                dldQ = (2.0 * U * T.tile(self.reg_params[idx].reshape((1, self.rank)), 
+                                         (self.ndim, 1))).T.reshape((U.size, 1))
             else: 
-                dldQ = (Q * T.tile(self.reg_params[idx].reshape((1, self.rank)), (2*self.ndim, 1))).T.reshape((Q.size, 1))
+                dldQ = (Q * 
+                        T.tile(self.reg_params[idx].reshape((1, self.rank)), (2 * self.ndim, 1))).T.reshape((Q.size, 1))
             if offset > 0:
                 if "UV-linear-insert-relaxed" in self.cetype:
                     dl += T.concatenate([T.zeros((offset, 1)), dldQ, dldw], axis=0).reshape((self.nvar,))
                 elif "UV-linear-relaxed" in self.cetype:
-                    dl += T.concatenate([T.zeros((offset, 1)), dldQ, T.zeros((w.size, 1))], axis=0).reshape((self.nvar,))
+                    dl += T.concatenate([T.zeros((offset, 1)), dldQ, T.zeros((w.size, 1))], 
+                                        axis=0).reshape((self.nvar,))
                 else:
                     dl += T.concatenate([T.zeros((offset, 1)), dldQ], axis=0).reshape((self.nvar,))
             else:
@@ -1142,7 +1126,6 @@ class MNEr:
         self.dl = dl
         return dl
 
-
     def reg_hess_expr(self, x=None, **kwargs):
         """ Construct an expression for the Hessian of the regularization
             penalty functions.
@@ -1157,10 +1140,6 @@ class MNEr:
         if x is None:
             x = self.x_dev
 
-        a, h, Q, w = self.vec_to_weights(x)
-        if self.use_vars['UVvar']:
-            U, V = self.Q_to_UV(Q)
-
         d2l = T.zeros((self.nvar, self.nvar))
         if "nuclear-norm" in self.rtype:
             idx = self.rtype.index("nuclear-norm")
@@ -1170,9 +1149,11 @@ class MNEr:
             if self.use_vars['hvar']:
                 offset += self.ndim
             if "UV-linear-insert" in self.cetype or "UV-linear-insert-relaxed" in self.cetype:
-                d2ldQ2 = 2.0*T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((self.rank, 1)), (1, self.ndim)).reshape((self.rank*self.ndim,)))
+                d2ldQ2 = 2.0 * T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((self.rank, 1)), 
+                                                     (1, self.ndim)).reshape((self.rank * self.ndim,)))
             else:
-                d2ldQ2 = T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((self.rank, 1)), (1, 2*self.ndim)).reshape((2*self.rank*self.ndim,)))
+                d2ldQ2 = T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((self.rank, 1)), 
+                                               (1, 2 * self.ndim)).reshape((2 * self.rank * self.ndim,)))
             d2l = T.inc_subtensor(d2l[offset:offset+d2ldQ2.shape[0], offset:offset+d2ldQ2.shape[1]], d2ldQ2)
 
         if "l2-norm" in self.rtype:
@@ -1181,11 +1162,12 @@ class MNEr:
             if self.use_vars['avar']:
                 offset += 1
             if self.use_vars['hvar']:
-                d2l = T.inc_subtensor(d2l[offset:offset+self.ndim, offset:offset+self.ndim], T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((1, 1)), (self.ndim, 1)).ravel()))
+                d2l = T.inc_subtensor(d2l[offset:offset+self.ndim, offset:offset+self.ndim], 
+                                      T.nlinalg.diag(T.tile(self.reg_params[idx].reshape((1, 1)), 
+                                                            (self.ndim, 1)).ravel()))
 
         self.d2l = d2l
         return d2l
-
 
     def cost_expr(self, x=None, **kwargs):
         """ Construct an expression for the (regularized) negative
@@ -1213,8 +1195,7 @@ class MNEr:
             f += l
 
         self.f = f
-        return f
-        
+        return f       
 
     def cost_grad_expr(self, x=None, **kwargs):
         """ Construct an expression for the gradient of the (regularized)
@@ -1230,7 +1211,7 @@ class MNEr:
         if x is None:
             x = self.x_dev
 
-        a, h, Q, w = self.vec_to_weights(x)
+        _, _, Q, w = self.vec_to_weights(x)
         if self.use_vars['UVvar']:
             U, V = self.Q_to_UV(Q)
         if "UV-linear-insert-relaxed" in self.cetype:
@@ -1250,20 +1231,24 @@ class MNEr:
         if self.use_vars['UVvar']:
             C = self.calc_dLdJ(x)
             if "UV-linear-insert-relaxed" in self.cetype:
-                df = T.set_subtensor(df[offset:offset+self.rank*self.ndim], 2.0 * T.dot(C, V).T.reshape((Q.size,))) # fscale already included in C
+                # Note: fscale already included in calculation of C.
+                df = T.set_subtensor(df[offset:offset+self.rank*self.ndim], 2.0 * T.dot(C, V).T.reshape((Q.size,)))
                 offset += self.rank*self.ndim
-                df = T.set_subtensor(df[offset:offset+self.rank], T.dot((T.dot(self.feat, U) ** 2).T, P-self.resp) * self.fscale)
+                df = T.set_subtensor(df[offset:offset+self.rank], 
+                                     T.dot((T.dot(self.feat, U) ** 2).T, P - self.resp) * self.fscale)
                 offset += self.rank
             elif "UV-linear-insert" in self.cetype:
-                df = T.set_subtensor(df[offset:offset+self.rank*self.ndim], 2.0 * T.dot(C, V).T.reshape((Q.size,))) # fscale already included in C
+                # Note: fscale already included in calculation of C.
+                df = T.set_subtensor(df[offset:offset+self.rank*self.ndim], 2.0 * T.dot(C, V).T.reshape((Q.size,)))
                 offset += self.rank*self.ndim
             else:
                 X1 = T.concatenate([T.zeros((self.ndim, self.ndim)), C], axis=1)
                 X2 = T.concatenate([C, T.zeros((self.ndim, self.ndim))], axis=1)
                 X = T.concatenate([X1, X2], axis=0)
 
-                df = T.set_subtensor(df[offset:offset+2*self.rank*self.ndim], T.dot(X, Q).T.reshape((Q.size,))) # fscale already included in C
-                offset += 2*self.rank*self.ndim
+                # Note: fscale already included in calculation of C.
+                df = T.set_subtensor(df[offset:offset + 2 * self.rank * self.ndim], T.dot(X, Q).T.reshape((Q.size,)))
+                offset += 2 * self.rank * self.ndim
 
         if self.rtype is not None:
             dl = self.reg_grad_expr(x)
@@ -1271,7 +1256,6 @@ class MNEr:
 
         self.df = df
         return df
-
 
     def cost_hess_expr(self, x=None, **kwargs):
         """ Construct an expression for the Hessian of the (regularized)
@@ -1294,40 +1278,46 @@ class MNEr:
             offset += self.ndim
 
         def block_vec(idx, g, U, V):
-            g = T.set_subtensor(g[:, offset+2*idx*self.ndim:offset+(1+2*idx)*self.ndim], T.tile(T.dot(self.feat, V[:, idx]).reshape((self.resp.size, 1)), (1, self.ndim)) * self.feat)
-            g = T.set_subtensor(g[:, offset+(1+2*idx)*self.ndim:offset+(2+2*idx)*self.ndim], T.tile(T.dot(self.feat, U[:, idx]).reshape((self.resp.size, 1)), (1, self.ndim)) * self.feat)
+            g = T.set_subtensor(g[:, offset + 2 * idx * self.ndim:offset + (1 + 2 * idx) * self.ndim], 
+                                T.tile(T.dot(self.feat, V[:, idx]).reshape((self.resp.size, 1)), 
+                                       (1, self.ndim)) * self.feat)
+            g = T.set_subtensor(g[:, offset + (1 + 2 * idx) * self.ndim:offset + (2 + 2 * idx) * self.ndim], 
+                                T.tile(T.dot(self.feat, U[:, idx]).reshape((self.resp.size, 1)), 
+                                       (1, self.ndim)) * self.feat)
 
             return g
 
         def block_vec_ins(idx, g, V):
-            g = T.set_subtensor(g[:, offset+idx*self.ndim:offset+(1+idx)*self.ndim], 2.0 * T.tile(T.dot(self.feat, V[:, idx]).reshape((self.resp.size, 1)), (1, self.ndim)) * self.feat)
+            g = T.set_subtensor(g[:, offset + idx * self.ndim:offset + (1 + idx) * self.ndim], 
+                                2.0 * T.tile(T.dot(self.feat, V[:, idx]).reshape((self.resp.size, 1)), 
+                                             (1, self.ndim)) * self.feat)
 
             return g
 
         def block_mat(idx, Xblk, X):
-            idx1 = offset+2*idx*self.ndim
-            idx2 = offset+2*(idx+1)*self.ndim
+            idx1 = offset + 2 * idx * self.ndim
+            idx2 = offset + 2 * (idx + 1) * self.ndim
             Xblk = T.set_subtensor(Xblk[idx1:idx2, idx1:idx2], X)
 
             return Xblk
 
         def block_mat_ins(idx, Xblk, X):
-            idx1 = offset+idx*self.ndim
-            idx2 = offset+(1+idx)*self.ndim
+            idx1 = offset + idx * self.ndim
+            idx2 = offset + (1 + idx) * self.ndim
             Xblk = T.set_subtensor(Xblk[idx1:idx2, idx1:idx2], 2.0 * X * self.csigns[idx])
 
             return Xblk
 
         def block_relax_ins(idx, Xblk, X, U, w):
-            idx1 = offset+idx*self.ndim
-            idx2 = offset+(1+idx)*self.ndim
+            idx1 = offset + idx * self.ndim
+            idx2 = offset + (1 + idx) * self.ndim
             Xblk = T.set_subtensor(Xblk[idx1:idx2, idx1:idx2], 2.0 * X * w[idx])
-            idx3 = offset+self.rank*self.ndim+idx
+            idx3 = offset + self.rank * self.ndim + idx
             Xblk = T.set_subtensor(Xblk[idx3], 2.0 * (T.dot(X, U[:,idx]) ** 2))
 
             return Xblk
             
-        a, h, Q, w = self.vec_to_weights(x)
+        _, _, Q, w = self.vec_to_weights(x)
         if self.use_vars['UVvar']:
             U, V = self.Q_to_UV(Q)
         if "UV-linear-insert-relaxed" in self.cetype:
@@ -1335,19 +1325,19 @@ class MNEr:
 
         if self.use_vars['UVvar']:
             if "UV-linear-insert" in self.cetype or "UV-linear-insert-relaxed" in self.cetype:
-                g, updates = theano.scan(
-                                fn=block_vec_ins,
-                                outputs_info=T.zeros((self.resp.size, self.nvar)),
-                                sequences=T.arange(U.shape[1]),
-                                non_sequences=V,
-                            )
+                g, _ = theano.scan(
+                    fn=block_vec_ins,
+                    outputs_info=T.zeros((self.resp.size, self.nvar)),
+                    sequences=T.arange(U.shape[1]),
+                    non_sequences=V,
+                )
             else:
-                g, updates = theano.scan(
-                                fn=block_vec,
-                                outputs_info=T.zeros((self.resp.size, self.nvar)),
-                                sequences=T.arange(U.shape[1]),
-                                non_sequences=[U, V],
-                            )
+                g, _ = theano.scan(
+                    fn=block_vec,
+                    outputs_info=T.zeros((self.resp.size, self.nvar)),
+                    sequences=T.arange(U.shape[1]),
+                    non_sequences=[U, V],
+                )
 
             g = g[-1]
         else:
@@ -1362,7 +1352,7 @@ class MNEr:
             offset += self.ndim
         if "UV-linear-insert-relaxed" in self.cetype:
             offset += self.rank * self.ndim
-            g = T.set_subtensor(g[:, offset:offset+self.rank], T.dot(self.feat, U) ** 2)
+            g = T.set_subtensor(g[:, offset:offset + self.rank], T.dot(self.feat, U) ** 2)
             offset += self.rank
 
         P = self.prob_expr(x)
@@ -1370,32 +1360,33 @@ class MNEr:
         d2f = T.dot(g.T * (P * (1 - P)), g) * self.fscale
 
         if self.use_vars['UVvar']:
-            C = self.calc_dLdJ(x) # fscale already included in C
+            # Note: fscale already included in calculation of C.
+            C = self.calc_dLdJ(x)
             if "UV-linear-insert-relaxed" in self.cetype:
-                Xfull, updates = theano.scan(
-                                    fn=block_relax_ins,
-                                    outputs_info=T.zeros((self.nvar, self.nvar)),
-                                    sequences=T.arange(U.shape[1]),
-                                    non_sequences=[C, U, w],
-                                )
+                Xfull, _ = theano.scan(
+                    fn=block_relax_ins,
+                    outputs_info=T.zeros((self.nvar, self.nvar)),
+                    sequences=T.arange(U.shape[1]),
+                    non_sequences=[C, U, w],
+                )
             elif "UV-linear-insert" in self.cetype:
-                Xfull, updates = theano.scan(
-                                    fn=block_mat_ins,
-                                    outputs_info=T.zeros((self.nvar, self.nvar)),
-                                    sequences=T.arange(U.shape[1]),
-                                    non_sequences=C,
-                                )
+                Xfull, _ = theano.scan(
+                    fn=block_mat_ins,
+                    outputs_info=T.zeros((self.nvar, self.nvar)),
+                    sequences=T.arange(U.shape[1]),
+                    non_sequences=C,
+                )
             else:
                 X1 = T.concatenate([T.zeros((self.ndim, self.ndim)), C], axis=1)
                 X2 = T.concatenate([C, T.zeros((self.ndim, self.ndim))], axis=1)
                 X = T.concatenate([X1, X2], axis=0)
 
-                Xfull, updates = theano.scan(
-                                    fn=block_mat,
-                                    outputs_info=T.zeros((self.nvar, self.nvar)),
-                                    sequences=T.arange(Q.shape[1]),
-                                    non_sequences=X,
-                                )
+                Xfull, _ = theano.scan(
+                    fn=block_mat,
+                    outputs_info=T.zeros((self.nvar, self.nvar)),
+                    sequences=T.arange(Q.shape[1]),
+                    non_sequences=X,
+                )
 
             d2f += Xfull[-1]
 
@@ -1405,7 +1396,6 @@ class MNEr:
 
         self.d2f = d2f
         return d2f
-
 
     def ceq_expr(self, x=None, **kwargs):
         """ Construct an expression for the equality constraint functions.
@@ -1420,49 +1410,50 @@ class MNEr:
         if x is None:
             x = self.x_dev
 
-        a, h, Q, w = self.vec_to_weights(x)
+        _, _, Q, w = self.vec_to_weights(x)
         if self.use_vars['UVvar']:
             U, V = self.Q_to_UV(Q)
         
         ce = T.as_tensor_variable(np.array([], dtype=self.float_dtype).reshape((0, 1)))
         if "UV-linear-relaxed" in self.cetype:
             # requires usage of w
-            clr = (U - V * T.tile(w.reshape((1, self.rank)), (self.ndim, 1))).T.reshape((self.rank*self.ndim, 1))
+            clr = (U - V * T.tile(w.reshape((1, self.rank)), (self.ndim, 1))).T.reshape((self.rank * self.ndim, 1))
             ce = T.concatenate([ce, clr], axis=0)
             self.num_lagrange_cetypes += 1
         elif "UV-linear" in self.cetype:
             # requires that self.csigns be set such that V[:, k] = +/-1*U[:, k] = self.csigns[k]*U[:,k] where self.csigns is a device variable
-            clin = (U - V * T.tile(self.csigns.reshape((1, self.rank)), (self.ndim, 1))).T.reshape((self.rank*self.ndim, 1))
+            clin = (U - V * T.tile(self.csigns.reshape((1, self.rank)), 
+                                   (self.ndim, 1))).T.reshape((self.rank * self.ndim, 1))
             ce = T.concatenate([ce, clin], axis=0)
             self.num_lagrange_cetypes += 1
         elif "UV-bilinear" in self.cetype:
             cbilin = T.triu(T.dot(U, V.T) - T.dot(V, U.T), k=1)
 
-            cbilin_unr, updates = theano.scan(
+            cbilin_unr, _ = theano.scan(
                 fn=self.unroll_triu,
-                outputs_info=T.zeros((self.ndim*(self.ndim+1)/2-self.ndim,)),
+                outputs_info=T.zeros((self.ndim * (self.ndim + 1) / 2 - self.ndim,)),
                 sequences=T.arange(self.ndim),
                 non_sequences=[cbilin, 1],
             )
 
-            cbilin_unr = cbilin_unr[-1].reshape((self.ndim*(self.ndim+1)/2-self.ndim,1))
+            cbilin_unr = cbilin_unr[-1].reshape((self.ndim * (self.ndim + 1) / 2 - self.ndim, 1))
             ce = T.concatenate([ce, cbilin_unr], axis=0)
             self.num_lagrange_cetypes += 1
         elif "UV-quadratic" in self.cetype:
             cquad = T.triu(T.dot(U, U.T) - T.dot(V, V.T))
             
-            cquad_unr, updates = theano.scan(
+            cquad_unr, _ = theano.scan(
                 fn=self.unroll_triu,
-                outputs_info=T.zeros((self.ndim*(self.ndim+1)/2,)),
+                outputs_info=T.zeros((self.ndim * (self.ndim + 1) / 2,)),
                 sequences=T.arange(self.ndim),
                 non_sequences=[cquad, 0],
             )
 
-            cquad_unr = cquad_unr[-1].reshape((self.ndim*(self.ndim+1)/2,1))
+            cquad_unr = cquad_unr[-1].reshape((self.ndim * (self.ndim + 1) / 2, 1))
             ce = T.concatenate([ce, cquad_unr], axis=0)
             self.num_lagrange_cetypes += 1
         elif "UV-inner-product" in self.cetype:
-            cinner = (T.sum(U * V, axis=0)**2 - T.sum(U ** 2, axis=0) * T.sum(V ** 2, axis=0)).reshape((self.rank, 1))
+            cinner = (T.sum(U * V, axis=0) ** 2 - T.sum(U ** 2, axis=0) * T.sum(V ** 2, axis=0)).reshape((self.rank, 1))
             ce = T.concatenate([ce, cinner], axis=0)
             self.num_lagrange_cetypes += 1
             
@@ -1470,7 +1461,6 @@ class MNEr:
 
         self.ce = ce
         return ce
-
 
     def ceq_jaco_expr(self, x=None, **kwargs):
         """ Construct an expression for the equality constraint Jacobians.
@@ -1485,7 +1475,7 @@ class MNEr:
         if x is None:
             x = self.x_dev
 
-        a, h, Q, w = self.vec_to_weights(x)
+        _, _, Q, w = self.vec_to_weights(x)
         if self.use_vars['UVvar']:
             U, V = self.Q_to_UV(Q)
 
@@ -1493,39 +1483,41 @@ class MNEr:
         # automatic differentiation works reasonably well for these
         if "UV-linear-relaxed" in self.cetype:
             # requires usage of w
-            clr = (U - V * T.tile(w.reshape((1, self.rank)), (self.ndim, 1))).T.reshape((self.rank*self.ndim,))
+            clr = (U - V * T.tile(w.reshape((1, self.rank)), (self.ndim, 1))).T.reshape((self.rank * self.ndim,))
             dclr = theano.gradient.jacobian(clr, wrt=x).reshape((self.rank*self.ndim, self.nvar)).T
             dce = T.concatenate([dce, dclr], axis=1)
         elif "UV-linear" in self.cetype:
             # requires that self.csigns be set such that V[:, k] = +/-1*U[:, k] = self.csigns[k]*U[:,k] where self.csigns is a device variable
-            clin = (U - V * T.tile(self.csigns.reshape((1, self.rank)), (self.ndim, 1))).T.reshape((self.rank*self.ndim,))
-            dclin = theano.gradient.jacobian(clin, wrt=x).reshape((self.rank*self.ndim, self.nvar)).T
+            clin = (U - V * T.tile(self.csigns.reshape((1, self.rank)), 
+                                   (self.ndim, 1))).T.reshape((self.rank * self.ndim,))
+            dclin = theano.gradient.jacobian(clin, wrt=x).reshape((self.rank * self.ndim, self.nvar)).T
             dce = T.concatenate([dce, dclin], axis=1)
         elif "UV-bilinear" in self.cetype:
             cbilin = T.triu(T.dot(U, V.T) - T.dot(V, U.T), k=1)
 
-            cbilin_unr, updates = theano.scan(
+            cbilin_unr, _ = theano.scan(
                 fn=self.unroll_triu,
-                outputs_info=T.zeros((self.ndim*(self.ndim+1)/2-self.ndim,)),
+                outputs_info=T.zeros((self.ndim * (self.ndim + 1) / 2-self.ndim,)),
                 sequences=T.arange(self.ndim),
                 non_sequences=[cbilin, 1],
             )
 
             cbilin_unr = cbilin_unr[-1]
-            dcbilin = theano.gradient.jacobian(cbilin_unr, wrt=x).reshape((self.ndim*(self.ndim+1)/2-self.ndim, self.nvar)).T
+            dcbilin = theano.gradient.jacobian(cbilin_unr, wrt=x).reshape((self.ndim * (self.ndim + 1) / 2 - self.ndim, 
+                                                                           self.nvar)).T
             dce = T.concatenate([dce, dcbilin], axis=1)
         elif "UV-quadratic" in self.cetype:
             cquad = T.triu(T.dot(U, U.T) - T.dot(V, V.T))
 
-            cquad_unr, updates = theano.scan(
+            cquad_unr, _ = theano.scan(
                 fn=self.unroll_triu,
-                outputs_info=T.zeros((self.ndim*(self.ndim+1)/2,)),
+                outputs_info=T.zeros((self.ndim * (self.ndim + 1) / 2,)),
                 sequences=T.arange(self.ndim),
                 non_sequences=[cquad, 0],
             )
 
             cquad_unr = cquad_unr[-1]
-            dcquad = theano.gradient.jacobian(cquad_unr, wrt=x).reshape((self.ndim*(self.ndim+1)/2, self.nvar)).T
+            dcquad = theano.gradient.jacobian(cquad_unr, wrt=x).reshape((self.ndim * (self.ndim + 1) / 2, self.nvar)).T
             dce = T.concatenate([dce, dcquad], axis=1)
         elif "UV-inner-product" in self.cetype:
             cinner = T.sum(U * V, axis=0)**2 - T.sum(U ** 2, axis=0) * T.sum(V ** 2, axis=0)
@@ -1534,7 +1526,6 @@ class MNEr:
 
         self.dce = dce
         return dce
-
 
     def ceq_hess_expr(self, x=None, lda=None, **kwargs):
         """ Construct an expression for the equality constraint Hessians.
@@ -1552,16 +1543,12 @@ class MNEr:
             x = self.x_dev
         if lda is None:
             lda = self.lda_dev
-
-        a, h, Q, w = self.vec_to_weights(x)
-        U, V = self.Q_to_UV(Q)
-
+        
         # using automatic differentiation
         d2ce = theano.gradient.hessian(cost=T.sum(self.ce * lda[:self.ce.size]), wrt=x)
 
         self.d2ce = d2ce
         return d2ce
-
 
     def cineq_expr(self, x=None, **kwargs):
         """ Construct an expression for the inequality constraint functions.
@@ -1585,7 +1572,6 @@ class MNEr:
         self.ci = ci
         return ci
 
-
     def cineq_jaco_expr(self, x=None, **kwargs):
         """ Construct an expression for the inequality constraint Jacobians.
 
@@ -1607,7 +1593,6 @@ class MNEr:
 
         self.dci = dci
         return dci
-
 
     def cineq_hess_expr(self, x=None, lda=None, **kwargs):
         """ Construct an expression for the inequality constraint Hessians.
@@ -1635,7 +1620,6 @@ class MNEr:
         self.d2ci = d2ci
         return d2ci
 
-
     # compile Theano expressions
     def compile_arg(self, x=None, **kwargs):
         """ Compile the argument of the probability (logistic) function.
@@ -1658,7 +1642,6 @@ class MNEr:
 
         return self.argument
 
-
     def compile_prob(self, x=None, **kwargs):
         """ Compile the probability (logistic) function.
 
@@ -1680,7 +1663,6 @@ class MNEr:
 
         return self.probability
 
-
     def compile_cost(self, x=None, **kwargs):
         """ Compile the (regularized) objective function.
 
@@ -1701,7 +1683,6 @@ class MNEr:
         )
 
         return self.cost
-
         
     def compile_cost_grad(self, x=None, **kwargs):
         """ Compile the gradient of the (regularized) objective function.
@@ -1724,7 +1705,6 @@ class MNEr:
 
         return self.grad
 
-
     def compile_cost_hess(self, x=None, **kwargs):
         """ Compile the Hessian of the (regularized) objective function.
 
@@ -1745,7 +1725,6 @@ class MNEr:
         )
 
         return self.hess
-
 
     def compile_ceq(self, x=None, **kwargs):
         """ Compile the equality constraint functions.
@@ -1768,7 +1747,6 @@ class MNEr:
 
         return self.ceq
 
-
     def compile_ceq_jaco(self, x=None, **kwargs):
         """ Compile the equality constraint Jacobians.
 
@@ -1789,7 +1767,6 @@ class MNEr:
         )
 
         return self.ceq_jaco
-
 
     def compile_ceq_hess(self, x=None, lda=None, **kwargs):
         """ Compile the equality constraint Hessians.
@@ -1816,7 +1793,6 @@ class MNEr:
 
         return self.ceq_hess
 
-
     def compile_cineq(self, x=None, **kwargs):
         """ Compile the inequality constraint functions.
 
@@ -1838,7 +1814,6 @@ class MNEr:
 
         return self.cineq
 
-
     def compile_cineq_jaco(self, x=None, **kwargs):
         """ Compile the inequality constraint Jacobians.
 
@@ -1859,7 +1834,6 @@ class MNEr:
         )
 
         return self.cineq_jaco
-
 
     def compile_cineq_hess(self, x=None, lda=None, **kwargs):
         """ Compile the inequality constraint Hessians.
@@ -1886,7 +1860,6 @@ class MNEr:
 
         return self.cineq_hess
 
-
     def get(self, name, default=None):
         """ Get attribute, if it exists; otherwise, return default.
 
@@ -1902,31 +1875,27 @@ class MNEr:
         """
         return getattr(self, name, default)
 
-
     def __getitem__(self, name):
         return self.get(name)
-
 
 
 # main function for testing
 if __name__ == "__main__":
 
-    def nice_print(M):
+    def format_(M):
+        msgs = []
         for i in range(M.shape[0]):
             msg = ""
             for j in range(M.shape[1]):
-                if len(str(M[i,j])) > 6:
-                    smsg = str(M[i,j])[:6]
+                if len(str(M[i, j])) > 6:
+                    smsg = str(M[i, j])[:6]
                 else:
-                    smsg = str(M[i,j])
+                    smsg = str(M[i, j])
                 msg += smsg + "\t"
-            print msg        
+            msgs.append(msg)
+        return '\n'.join(msgs)
 
-
-    print "----------------------------"
-    print "UNIT TESTING"
-    print "----------------------------"
-    print ""
+    print('----------------------------\nUNIT TESTING\n----------------------------\n')
 
     resp = np.array([0.1, 0.5, 0.7, 0.2])
     feat = np.array([[1.0, -1.0, 0.5], [0.5, -0.25, -1.0], [-0.75, 0.75, 1.5], [-2.0, 0.25, -1.0]])
@@ -1935,7 +1904,7 @@ if __name__ == "__main__":
     cetype = "UV-linear-insert"
     citype = None
     rtype = ["nuclear-norm", "l2-norm"]
-    fscale = 1.0/resp.size
+    fscale = 1.0 / resp.size
     use_vars = {'avar': True, 'hvar': True, 'UVvar': True}
     use_consts = {'aconst': True, 'hconst': True, 'UVconst': True, 'Jconst': True}
     if theano.config.floatX == "float64":
@@ -1946,7 +1915,7 @@ if __name__ == "__main__":
         float_dtype = np.float64
     
     if rtype is not None:
-        reg_params = [[]]*len(rtype)
+        reg_params = [[]] * len(rtype)
     else:
         reg_params = []
     if "nuclear-norm" in rtype:
@@ -1964,26 +1933,24 @@ if __name__ == "__main__":
             csigns.append(-1)
     csigns = np.array(csigns)
 
-    print "nuclear-norm regularization parameters:"
-    print reg_params
-    print ""
+    print('Nuclear-norm regularization parameters:\n{}\n'.format(reg_params))
 
     x = T.vector('x')
     lda = T.vector('lda')
 
     if cetype == "UV-linear-relaxed":
-        lda_const = np.random.randn(feat.shape[1]*rank).astype(float_dtype)
+        lda_const = np.random.randn(feat.shape[1] * rank).astype(float_dtype)
     elif cetype == "UV-linear":
-        lda_const = np.random.randn(feat.shape[1]*rank).astype(float_dtype)
+        lda_const = np.random.randn(feat.shape[1] * rank).astype(float_dtype)
     elif cetype == "UV-bilinear":
-        lda_const = np.random.randn(feat.shape[1]*(feat.shape[1]+1)/2-feat.shape[1]).astype(float_dtype)
+        lda_const = np.random.randn(feat.shape[1] * (feat.shape[1] + 1) / 2 - feat.shape[1]).astype(float_dtype)
     elif cetype == "UV-quadratic":
-        lda_const = np.random.randn(feat.shape[1]*(feat.shape[1]+1)/2).astype(float_dtype)
+        lda_const = np.random.randn(feat.shape[1] * (feat.shape[1] + 1) / 2).astype(float_dtype)
     elif cetype == "UV-inner-product":
         lda_const = np.random.randn(rank).astype(float_dtype)
         
-    print "constructing and compiling functions..."
-    model = MNEr(resp, feat, rank, cetype, citype, rtype, fscale, use_vars, use_consts, float_dtype)
+    print("Constructing and compiling functions...")
+    model = MNEr(resp, feat, rank, cetype, citype, rtype, fscale, use_vars, use_consts, float_dtype=float_dtype)
     model.init_csigns(csigns)
     model.cost_expr(x)
     model.compile_cost(x)
@@ -1994,7 +1961,10 @@ if __name__ == "__main__":
     model.cost_hess_expr(x)
     model.compile_cost_hess(x)
     
-    if cetype is not None and "UV-linear-insert" not in model.cetype and "UV-linear-insert-relaxed" not in model.cetype and use_vars['UVvar']:
+    if (cetype is not None and 
+         "UV-linear-insert" not in model.cetype and 
+         "UV-linear-insert-relaxed" not in model.cetype and 
+         use_vars['UVvar']):
         model.ceq_expr(x)
         model.compile_ceq(x)
 
@@ -2003,64 +1973,88 @@ if __name__ == "__main__":
 
         model.ceq_hess_expr(x, lda)
         model.compile_ceq_hess(x, lda)
-    print "complete."
-    print ""
+    print('Complete.\n')
 
     #model.init_weights_feas()
     model.init_weights()
     #model.x += float_dtype(0.25)
     # showing bilinear rank-deficiency
     #a, h, Q, _ = model.vec_to_weights(model.x)
-    #Q[:2,:] = 0.0
-    #Q[feat.shape[1]:feat.shape[1]+2,:] = 0.0
+    #Q[:2, :] = 0.0
+    #Q[feat.shape[1]:feat.shape[1] + 2, :] = 0.0
     #model.x = model.weights_to_vec(a, h, Q)
     if rtype is not None or len(rtype) > 0:
         for i in range(len(rtype)):
             model.assign_reg_params(rtype[i], reg_params[i])
-    print "cost = "
-    print model.cost(model.x)
-    print ""
-    print "gradient = "
-    print model.grad(model.x)
-    H = model.hess(model.x)
-    print ""
-    print "Hessian = "
-    nice_print(H)
 
-    if cetype is not None and "UV-linear-insert" not in model.cetype and "UV-linear-insert-relaxed" not in model.cetype and use_vars['UVvar']:
-        print ""
-        print "equality constraints = "
-        print model.ceq(model.x)
-        print ""
-        print "equality constraints Jacobian = "
-        print model.ceq_jacobian(model.x)
-        print ""
-        print "equality constraints Hessian (linear combination weighted by lda) = "
+    H = model.hess(model.x)
+    print('''
+Cost = 
+{}
+
+Gradient = 
+{}
+
+Hessian = 
+{}
+    '''.format(model.cost(model.x), model.grad(model.x), format_(H)).lstrip())
+
+    Hce = None
+    if (cetype is not None and 
+         "UV-linear-insert" not in model.cetype and 
+         "UV-linear-insert-relaxed" not in model.cetype and 
+         use_vars['UVvar']):
         Hce = model.ceq_hess(model.x, lda_const)
-        nice_print(Hce)
+        print('''
+Equality constraints =
+{}
+
+Equality constraints Jacobian =
+{}
+
+Equality constraints Hessian (linear combination weighted by lda) =
+{}
+        '''.format(
+            model.ceq(model.x),
+            model.ceq_jacobian(model.x),
+            format_(Hce),
+        ).lstrip())
 
     from scipy.optimize import check_grad
 
-    print ""
-    print "cost gradient checking (norm difference) = "
-    print check_grad(lambda x: model.cost(x.astype(float_dtype)).astype(np.float64), lambda x: model.grad(x.astype(float_dtype)).astype(np.float64), model.x.astype(np.float64), epsilon=np.sqrt(np.finfo(float_dtype).eps))
-    #print check_grad(model.cost, model.grad, model.x)
+    grad_err = check_grad(
+        lambda x: model.cost(x.astype(float_dtype)).astype(np.float64), 
+        lambda x: model.grad(x.astype(float_dtype)).astype(np.float64), 
+        model.x.astype(np.float64), 
+        epsilon=np.sqrt(np.finfo(float_dtype).eps)
+    )
+    print('Cost gradient checking (norm difference) = \n{}\n'.format(grad_err))
 
-    print ""
-    print "cost Hessian checking (norm difference) = "
+    print("Cost Hessian checking (norm difference) = ")
     for i in range(H.shape[1]):
-        print "row " + str(i) + ": " + str(check_grad(lambda x: model.grad(x.astype(float_dtype))[i].astype(np.float64), lambda x: model.hess(x.astype(float_dtype))[i, :].astype(np.float64), model.x.astype(np.float64), epsilon=np.sqrt(np.finfo(float_dtype).eps)))
-        #print "row " + str(i) + ": " + str(check_grad(lambda x: model.grad(x)[i], lambda x: model.hess(x)[i, :], model.x))
+        hess_err = check_grad(
+            lambda x: model.grad(x.astype(float_dtype))[i].astype(np.float64), 
+            lambda x: model.hess(x.astype(float_dtype))[i, :].astype(np.float64),
+            model.x.astype(np.float64), 
+            epsilon=np.sqrt(np.finfo(float_dtype).eps)
+        )
+        print('--> row {}: {}'.format(i, hess_err))
     
-    if cetype is not None and "UV-linear-insert" not in model.cetype and "UV-linear-insert-relaxed" not in model.cetype and use_vars['UVvar']:
-        print ""
-        print "equality constraints Jacobian checking (norm difference) = "
+    if Hce is not None:
+        print("\nEquality constraints Jacobian checking (norm difference) = ")
         for i in range(model.ceq(model.x).size):
-            #print "col " + str(i) + ": " + str(check_grad(lambda x: model.ceq(x.astype(float_dtype))[i].astype(np.float64), lambda x: model.ceq_jacobian(x.astype(float_dtype))[:, i].astype(np.float64), model.x.astype(np.float64)))
-            print "col " + str(i) + ": " + str(check_grad(lambda x: model.ceq(x)[i], lambda x: model.ceq_jacobian(x)[:, i], model.x))
+            jaco_err = check_grad(
+                lambda x: model.ceq(x)[i], 
+                lambda x: model.ceq_jacobian(x)[:, i], 
+                model.x
+            )
+            print('--> col {}: {}'.format(i, jaco_err))
 
-        print ""
-        print "equality constraints Hessian checking (norm difference; linear combination weighted by lda) = "
+        print("\nEquality constraints Hessian checking (norm difference; linear combination weighted by lda) = ")
         for i in range(Hce.shape[1]):
-            #print "row " + str(i) + ": " + str(check_grad(lambda x: np.dot(model.ceq_jacobian(x), lda_const)[i], lambda x: model.ceq_hess(x, lda_const)[i, :], model.x))
-            print "row " + str(i) + ": " + str(check_grad(lambda x: np.dot(model.ceq_jacobian(x), lda_const)[i], lambda x: model.ceq_hess(x, lda_const)[i, :], model.x))
+            hess_err = check_grad(
+                lambda x: np.dot(model.ceq_jacobian(x), lda_const)[i], 
+                lambda x: model.ceq_hess(x, lda_const)[i, :], 
+                model.x
+            )
+            print('--> row {}: {}'.format(i, hess_err))

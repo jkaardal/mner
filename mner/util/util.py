@@ -31,7 +31,7 @@ def load_response(resp_path, format_str, input_dtype, output_dtype):
 
     y = y/ymax
 
-    return (y, nsamp, ymax)
+    return y, nsamp, ymax
 
 
 def load_features(feat_path, format_str, input_dtype, output_dtype, nsamp, feat_major=False):
@@ -51,7 +51,7 @@ def load_features(feat_path, format_str, input_dtype, output_dtype, nsamp, feat_
     else:
         s = np.reshape(s, (nsamp, ndim)).astype(output_dtype)
 
-    return (s, ndim)
+    return s, ndim
 
 
 def zscore_features(s):
@@ -63,7 +63,7 @@ def zscore_features(s):
     s -= np.tile(s_avg, (nsamp, 1))
     s /= np.tile(s_std, (nsamp, 1))
 
-    return (s, s_avg, s_std)
+    return s, s_avg, s_std
 
 
 def generate_dataset_logical_indices(train_fraction, cv_fraction, nsamp, njack=1):
@@ -90,7 +90,7 @@ def generate_dataset_logical_indices(train_fraction, cv_fraction, nsamp, njack=1
 
     nshift = int(nsamp/njack)
 
-    return (trainset, cvset, testset, nshift)
+    return trainset, cvset, testset, nshift
 
 
 def roll_dataset_logical_indices(trainset, cvset, testset, nshift, djack):
@@ -99,7 +99,7 @@ def roll_dataset_logical_indices(trainset, cvset, testset, nshift, djack):
     cvset = np.roll(cvset, djack*nshift)
     testset = np.roll(testset, djack*nshift)
 
-    return (trainset, cvset, testset)
+    return trainset, cvset, testset
 
 
 def convert_dataset_logical_indices_to_array_indices(trainset, cvset, testset):
@@ -112,7 +112,7 @@ def convert_dataset_logical_indices_to_array_indices(trainset, cvset, testset):
     cvInd = np.reshape(cvInd, (cvInd.size,))
     testInd = np.reshape(testInd, (testInd.size,))
 
-    return (trainInd, cvInd, testInd)
+    return trainInd, cvInd, testInd
 
 
 # MNEr weight conversions
@@ -192,11 +192,12 @@ def vec_to_weights(x, ndim, rank, **kwargs):
         U = None
         V = None
 
-    return (a, h, U, V)
+    return a, h, U, V
 
 
 # MNEr block coordinate descent results I/O
-def load_blk_weights(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_files=None, order=None):
+def load_blk_weights(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, 
+                     out_float_dtype=np.float64, custom_files=None, order=None):
     # load block results from file
     
     U = np.zeros((ndim, rank)).astype(out_float_dtype)
@@ -226,10 +227,11 @@ def load_blk_weights(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="",
     else:
         raise Exception("'custom_files' must be a list of strings.")
 
-    return (a, h, U, V)
+    return a, h, U, V
 
 
-def save_blk_weights(xblk, r, rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def save_blk_weights(xblk, r, rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, 
+                     custom_file=None):
     # save block results to file
 
     if custom_file is None:
@@ -251,7 +253,8 @@ def save_blk_weights(xblk, r, rank, jack=1, path=os.getcwd(), prefix="", suffix=
 
 
 # MNEr block coordinate descent checkpointing
-def save_blk_checkpoint(xblk, r, rank, iter_num, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def save_blk_checkpoint(xblk, r, rank, iter_num, jack=1, path=os.getcwd(), prefix="", suffix="", 
+                        out_float_dtype=np.float64, custom_file=None):
     # save checkpoint
 
     chkpnt_file = ""
@@ -286,7 +289,8 @@ def save_blk_checkpoint(xblk, r, rank, iter_num, jack=1, path=os.getcwd(), prefi
     return chkpnt
 
 
-def load_blk_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_files=None):
+def load_blk_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, 
+                        out_float_dtype=np.float64, custom_files=None):
     # load checkpointed data
 
     chkpnt_file = ""
@@ -315,10 +319,11 @@ def load_blk_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix=
                 order.extend(chkpnt[1:])
             else:
                 order = chkpnt[1:]
-            a, h, U, V = load_blk_weights(rank, ndim, jack, path, prefix, suffix, in_float_dtype, out_float_dtype, custom_files, order)
+            a, h, U, V = load_blk_weights(rank, ndim, jack, path, prefix, suffix, in_float_dtype, out_float_dtype, 
+                                          custom_files, order)
             x = weights_to_vec(a, h, U, V)
 
-    return (x, chkpnt)
+    return x, chkpnt
     
 
 def clear_checkpoint(rank, ndim, jack=1, path=os.getcwd(), prefix="", suffix="", custom_files=None):
@@ -394,7 +399,8 @@ def save_weights(x, rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_fl
         x.astype(out_float_dtype).tofile(f)
 
 
-def load_weights(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_file=None):
+def load_weights(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, 
+                 out_float_dtype=np.float64, custom_file=None):
     # load weights from file
 
     if custom_file is not None:
@@ -418,7 +424,8 @@ def load_weights(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_
     return x
 
 
-def load_checkpoint(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_files=None, custom_sampling_history_file=None):
+def load_checkpoint(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, 
+                    out_float_dtype=np.float64, custom_files=None, custom_sampling_history_file=None):
     # load checkpointed data
 
     chkpnt_file = ""
@@ -445,16 +452,18 @@ def load_checkpoint(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_flo
         if len(chkpnt) > 0:
             x = load_weights(rank, jack, path, prefix, suffix, in_float_dtype, out_float_dtype, custom_files)
             try:
-                X, E, Fval = load_sampling_history(rank, jack, path, prefix, suffix, out_float_dtype, custom_sampling_history_file)
+                X, E, Fval = load_sampling_history(rank, jack, path, prefix, suffix, out_float_dtype, 
+                                                   custom_sampling_history_file)
             except IOError:
                 X = None
                 Fval = None
 
-    return (x, chkpnt, X, E, Fval)
+    return x, chkpnt, X, E, Fval
 
 
 
-def save_checkpoint(x, rank, iter_num, X=None, E=None, Fval=None, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None, custom_sampling_history_file=None):
+def save_checkpoint(x, rank, iter_num, X=None, E=None, Fval=None, jack=1, path=os.getcwd(), prefix="", suffix="", 
+                    out_float_dtype=np.float64, custom_file=None, custom_sampling_history_file=None):
     # save checkpoint
 
     chkpnt_file = ""
@@ -470,7 +479,8 @@ def save_checkpoint(x, rank, iter_num, X=None, E=None, Fval=None, jack=1, path=o
 
     save_weights(x, rank, jack, path, prefix, suffix, out_float_dtype, custom_file)
     if X is not None:
-        save_sampling_history(X, E, Fval, rank, jack, path, prefix, suffix, out_float_dtype, custom_sampling_history_file)
+        save_sampling_history(X, E, Fval, rank, jack, path, prefix, suffix, out_float_dtype, 
+                              custom_sampling_history_file)
     
     with open(os.path.expanduser(chkpnt_file), "w") as f:
         f.write(",".join(chkpnt))
@@ -502,7 +512,8 @@ def clear_weights(rank, jack=1, path=os.getcwd(), prefix="", suffix="", custom_f
     return success
 
 
-def save_summary(rank, jack=1, ftrain=None, fcv=None, ftest=None, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def save_summary(rank, jack=1, ftrain=None, fcv=None, ftest=None, path=os.getcwd(), prefix="", suffix="", 
+                 out_float_dtype=np.float64, custom_file=None):
     # save performance numbers to file
 
     if custom_file is not None:
@@ -553,7 +564,8 @@ def clear_summary(rank, jack=1, path=os.getcwd(), prefix="", suffix="", custom_f
     return success
 
         
-def load_summary(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, out_float_dtype=np.float64, custom_file=None):
+def load_summary(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_dtype=np.float64, 
+                 out_float_dtype=np.float64, custom_file=None):
     # load performance numbers from file (train, cross-validation, test)
 
     if custom_file is not None:
@@ -574,11 +586,12 @@ def load_summary(rank, jack=1, path=os.getcwd(), prefix="", suffix="", in_float_
     else:
         fvals = [None, None, None]
             
-    return (fvals[0], fvals[1], fvals[2])
+    return fvals[0], fvals[1], fvals[2]
 
 
 # I/O for Bayesian optimization
-def save_sampling_history(X, E, Fval, rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def save_sampling_history(X, E, Fval, rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, 
+                          custom_file=None):
     # save sampling history to file
 
     if custom_file is not None:
@@ -600,7 +613,8 @@ def save_sampling_history(X, E, Fval, rank, jack=1, path=os.getcwd(), prefix="",
     h5f.close()
 
 
-def load_sampling_history(rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, custom_file=None):
+def load_sampling_history(rank, jack=1, path=os.getcwd(), prefix="", suffix="", out_float_dtype=np.float64, 
+                          custom_file=None):
     # load sampling history from file
 
     if custom_file is not None:
@@ -621,7 +635,7 @@ def load_sampling_history(rank, jack=1, path=os.getcwd(), prefix="", suffix="", 
     Fval = h5f["Fval"][:].astype(out_float_dtype)
     h5f.close()
 
-    return (X, E, Fval)
+    return X, E, Fval
 
 
 def clear_sampling_history(rank, jack=1, path=os.getcwd(), prefix="", suffix="", custom_file=None):
@@ -652,50 +666,53 @@ def clear_sampling_history(rank, jack=1, path=os.getcwd(), prefix="", suffix="",
 def rescale_mned(a, h, J, s_avg, s_std):
     D = s_avg.size
 
-    ap = a + np.sum(s_avg.reshape((D, 1))*h.reshape((D, 1))) + np.sum(s_avg.reshape((D, 1))*np.dot(J, s_avg.reshape((D, 1))))
-    hp = (h + 2*np.dot(J, s_avg.reshape((D, 1))))*s_std.reshape((D, 1))
+    ap = a + np.sum(s_avg.reshape((D, 1)) * h.reshape((D, 1))) + np.sum(s_avg.reshape((D, 1)) * \
+        np.dot(J, s_avg.reshape((D, 1))))
+    hp = (h + 2 * np.dot(J, s_avg.reshape((D, 1)))) * s_std.reshape((D, 1))
     Jp = J*np.dot(s_std.reshape((D, 1)), s_std.reshape((1, D)))
 
-    return (ap, hp, Jp)
+    return ap, hp, Jp
 
 def descale_mned(ap, hp, Jp, s_avg, s_std):
     D = s_avg.size
 
-    x = s_avg.reshape((D, 1))/s_std.reshape((D, 1))
-    a = ap - np.sum(hp.reshape((D, 1))*x) + np.sum(x*np.dot(Jp, x))
-    h = (hp - 2*np.dot(Jp, x))/s_std.reshape((D, 1))
-    J = Jp/np.dot(s_std.reshape((D, 1)), s_std.reshape((1, D)))
+    x = s_avg.reshape((D, 1)) / s_std.reshape((D, 1))
+    a = ap - np.sum(hp.reshape((D, 1))*x) + np.sum(x * np.dot(Jp, x))
+    h = (hp - 2 * np.dot(Jp, x)) / s_std.reshape((D, 1))
+    J = Jp / np.dot(s_std.reshape((D, 1)), s_std.reshape((1, D)))
 
-    return (a, h, J)
+    return a, h, J
 
 def rescale_mner(a, h, U, V, s_avg, s_std):
     D = s_avg.size
     J = np.dot(U, V.T)
 
-    ap = a + np.sum(s_avg.reshape((D, 1))*h.reshape((D, 1))) + np.sum(s_avg.reshape((D, 1))*np.dot(J, s_avg.reshape((D, 1))))
-    hp = (h + 2*np.dot(J, s_avg.reshape((D, 1))))*s_std.reshape((D, 1))
+    ap = a + np.sum(s_avg.reshape((D, 1)) * h.reshape((D, 1))) + np.sum(s_avg.reshape((D, 1)) * \
+        np.dot(J, s_avg.reshape((D, 1))))
+    hp = (h + 2 * np.dot(J, s_avg.reshape((D, 1)))) * s_std.reshape((D, 1))
     Up = U*np.tile(s_std.reshape((D, 1)), (1, U.shape[1]))
     Vp = V*np.tile(s_std.reshape((D, 1)), (1, V.shape[1]))
 
-    return (ap, hp, Up, Vp)
+    return ap, hp, Up, Vp
 
 def descale_mner(ap, hp, Up, Vp, s_avg, s_std):
     D = s_avg.size
     Jp = np.dot(Up, Vp.T)
 
-    x = s_avg.reshape((D, 1))/s_std.reshape((D, 1))
-    a = ap - np.sum(hp.reshape((D, 1))*x) + np.sum(x*np.dot(Jp, x))
-    h = (hp - 2*np.dot(Jp, x))/s_std.reshape((D, 1))
-    U = Up/np.tile(s_std.reshape((D, 1)), (1, U.shape[1]))
-    V = Vp/np.tile(s_std.reshape((D, 1)), (1, V.shape[1]))
+    x = s_avg.reshape((D, 1)) / s_std.reshape((D, 1))
+    a = ap - np.sum(hp.reshape((D, 1)) * x) + np.sum(x * np.dot(Jp, x))
+    h = (hp - 2*np.dot(Jp, x)) / s_std.reshape((D, 1))
+    U = Up / np.tile(s_std.reshape((D, 1)), (1, Up.shape[1]))
+    V = Vp / np.tile(s_std.reshape((D, 1)), (1, Vp.shape[1]))
 
-    return (a, h, U, V)
+    return a, h, U, V
 
 # not used
 def neg_log_likelihood(s, y, a, h, U, V, epsilon, EPS):
-    P = 1.0/(1.0 + np.exp(-a - s.dot(h) - np.sum(s*(s.dot(U.dot(V.T))), axis=1)))
+    P = 1.0/(1.0 + np.exp(-a - s.dot(h) - np.sum(s * (s.dot(U.dot(V.T))), axis=1)))
 
-    return -np.mean(y*np.log(P+EPS) + (1-y)*np.log(1-P+EPS)) + epsilon*(np.sum(U[:,-1] ** 2) + np.sum(V[:,-1] ** 2))
+    return -np.mean(y * np.log(P + EPS) + (1 - y) * np.log(1 - P + EPS)) + \
+                    epsilon * (np.sum(U[:,-1] ** 2) + np.sum(V[:,-1] ** 2))
 
 def convert_epsilon_to_label(eps, prec=6):
 
@@ -714,26 +731,26 @@ def convert_epsilon_to_label(eps, prec=6):
             break
     if offset == -1:
         label = "0d0"
-    elif offset < dplace and offset+prec > dplace and offset+prec <= len(label):
+    elif offset < dplace and offset + prec > dplace and offset + prec <= len(label):
         if offset+prec+1 < len(label):
-            label = label[:offset+prec+1]
-            label = label[offset:offset+prec+1] + "d" + str(dplace-offset-prec)
+            label = label[:offset + prec + 1]
+            label = label[offset:offset + prec + 1] + "d" + str(dplace - offset - prec)
             index = label.index('.')
-            label = label[:index] + label[index+1:]
+            label = label[:index] + label[index + 1:]
         else:
             label = label[offset:] + "d" + str(dplace-offset-len(lda1)+1)
             index = label.index('.')
             label = label[:index] + label[index+1:]
     else:
         if offset+prec < len(label):
-            label = label[:offset+prec]
+            label = label[:offset + prec]
             if offset > dplace:
-                label = label[offset:offset+prec] + "d" + str(dplace-offset-prec+1)
+                label = label[offset:offset + prec] + "d" + str(dplace - offset - prec + 1)
             else:
-                label = label[offset:offset+prec] + "d" + str(dplace-offset-prec)
+                label = label[offset:offset + prec] + "d" + str(dplace - offset - prec)
         else:
             if offset > dplace:
-                label = label[offset:] + "d" + str(dplace-len(label)+1)
+                label = label[offset:] + "d" + str(dplace - len(label) + 1)
             else:
-                label = label[offset:] + "d" + str(dplace-len(label))
+                label = label[offset:] + "d" + str(dplace - len(label))
     return label

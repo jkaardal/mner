@@ -111,13 +111,15 @@ class Optimizer(object):
         self.train_model, self.cv_model, self.test_model = self.config_models(resp, feat, **kwargs)
 
         # build expressions for model(s)
-        self.build_expressions(self.train_model, grad=kwargs.get("compute_grad", True), hess=kwargs.get("compute_hess", False), **kwargs)
+        self.build_expressions(self.train_model, grad=kwargs.get("compute_grad", True), 
+                               hess=kwargs.get("compute_hess", False), **kwargs)
         self.build_expressions(self.cv_model, grad=False, hess=False, **kwargs)
         self.build_expressions(self.test_model, grad=False, hess=False, **kwargs)
 
         # compile the expressions
         if kwargs.get("precompile", True):
-            self.compile_expressions(self.train_model, grad=kwargs.get("compute_grad", True), hess=kwargs.get("compute_hess", False), **kwargs)
+            self.compile_expressions(self.train_model, grad=kwargs.get("compute_grad", True), 
+                                     hess=kwargs.get("compute_hess", False), **kwargs)
             self.compile_expressions(self.cv_model, grad=False, hess=False, **kwargs)
             self.compile_expressions(self.test_model, grad=False, hess=False, **kwargs)
 
@@ -125,8 +127,7 @@ class Optimizer(object):
         if solver is not None:
             self.init_solver(**kwargs)
 
-        self.initialized = True
-            
+        self.initialized = True    
 
     def get_data_sizes(self, feat):
         """ Get the number of samples and features.
@@ -142,7 +143,6 @@ class Optimizer(object):
 
         """
         return feat.shape
-
     
     def get_data_subset_sample_sizes(self, nsamp, datasets):
         """ Get the number of samples in each of the data subsets.
@@ -171,8 +171,7 @@ class Optimizer(object):
         else:
             ntrain = nsamp
 
-        return (ntrain, ncv, ntest)
-
+        return ntrain, ncv, ntest
     
     def get_model_scaling(self, fscale, **kwargs):
         """ Determine the scaling of the negative log-likelihood objective
@@ -234,8 +233,7 @@ class Optimizer(object):
         else:
             fscale["testset"] = 1.0
             
-        return fscale
-            
+        return fscale        
 
     def config_models(self, resp, feat, fscale=None, **kwargs):
         """ Configure the low-rank MNE model(s) by instantiating the class
@@ -262,18 +260,26 @@ class Optimizer(object):
         train_model, cv_model, test_model = None, None, None
         if self.datasets is None:
             # model trained on entire dataset
-            train_model = model.MNEr(resp, feat, self.rank, cetype=self.cetype, citype=self.citype, rtype=self.rtype, fscale=self.fscale["trainset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
+            train_model = model.MNEr(resp, feat, self.rank, cetype=self.cetype, citype=self.citype, rtype=self.rtype, 
+                                     fscale=self.fscale["trainset"], use_vars=self.use_vars, use_consts=self.use_consts, 
+                                     x_dev=self.x_dev, **kwargs)
         else:
             # model trained on subset of dataset
             if "trainset" in self.datasets:
-                train_model = model.MNEr(resp[self.datasets["trainset"]], feat[self.datasets["trainset"],:], self.rank, cetype=self.cetype, citype=self.citype, rtype=self.rtype, fscale=self.fscale["trainset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
+                train_model = model.MNEr(resp[self.datasets["trainset"]], feat[self.datasets["trainset"],:], self.rank, 
+                                         cetype=self.cetype, citype=self.citype, rtype=self.rtype, 
+                                         fscale=self.fscale["trainset"], use_vars=self.use_vars, 
+                                         use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
             if "cvset" in self.datasets:
-                cv_model = model.MNEr(resp[self.datasets["cvset"]], feat[self.datasets["cvset"],:], self.rank, cetype=self.cetype, citype=self.citype, fscale=self.fscale["cvset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
+                cv_model = model.MNEr(resp[self.datasets["cvset"]], feat[self.datasets["cvset"],:], self.rank, 
+                                      cetype=self.cetype, citype=self.citype, fscale=self.fscale["cvset"], 
+                                      use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
             if "testset" in self.datasets:
-                test_model = model.MNEr(resp[self.datasets["testset"]], feat[self.datasets["testset"],:], self.rank, cetype=self.cetype, citype=self.citype, fscale=self.fscale["testset"], use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
+                test_model = model.MNEr(resp[self.datasets["testset"]], feat[self.datasets["testset"],:], self.rank, 
+                                        cetype=self.cetype, citype=self.citype, fscale=self.fscale["testset"], 
+                                        use_vars=self.use_vars, use_consts=self.use_consts, x_dev=self.x_dev, **kwargs)
 
-        return (train_model, cv_model, test_model)
-
+        return train_model, cv_model, test_model
     
     def build_expressions(self, model, grad=True, hess=False, **kwargs):
         """Build Theano expressions for the objective, constraints, gradient,
@@ -310,7 +316,6 @@ class Optimizer(object):
                     model.cineq_jaco_expr(self.x_dev)
                 if hess:
                     model.cineq_hess_expr(self.x_dev)
-
 
     def compile_expressions(self, model, grad=True, hess=False, **kwargs):
         """Compile Theano expressions into device functions for a given
@@ -349,7 +354,6 @@ class Optimizer(object):
                 if hess:
                     model.compile_cineq_hess(self.x_dev, self.lda_dev)
 
-
     def init_solver(self, **kwargs):
         """ Initialize the solver object.
 
@@ -358,7 +362,6 @@ class Optimizer(object):
         """
         if not hasattr(self.solver, 'initialized') or self.solver.initialized == False:
             self.solver = self.solver(self, **kwargs)
-            
 
     def compute_set(self, set_name, **kwargs):
         """ Compute the objective function at the current weights.
@@ -378,7 +381,6 @@ class Optimizer(object):
         fval = eval("self." + set_name + "_model.cost(self.x.astype(self.float_dtype))")
 
         return fval
-
 
     def optimize(self, x0=None, **kwargs):
         """Optimize the low-rank MNE model.
@@ -401,8 +403,7 @@ class Optimizer(object):
             x0 = self.train_model.init_vec()
 
         self.x, self.ftrain = self.solver.solve(x0.astype(self.float_dtype), **kwargs)
-        return (self.x, self.ftrain)
-
+        return self.x, self.ftrain
     
     def get(self, name, default=None):
         """ Get attribute, if it exists; otherwise, return default.
@@ -418,7 +419,6 @@ class Optimizer(object):
 
         """
         return getattr(self, name, default)
-
 
     def __getitem__(self, name):
         return self.get(name)

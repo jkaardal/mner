@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
 import theano
@@ -88,8 +90,7 @@ class BaseSolver(object):
         return getattr(self, name, default)
 
     def __getitem__(self, name):
-        return self.get(name)
-    
+        return self.get(name)  
 
             
 class IPMSolver(BaseSolver):
@@ -183,10 +184,13 @@ class IPMSolver(BaseSolver):
             d2ci = self.train_model.d2ci
             
         # initialize IPM
-        self.problem = pyipm.IPM(x0=self.x0, x_dev=self.x_dev, f=f, df=df, d2f=d2f, ce=ce, dce=dce, d2ce=d2ce, ci=ci, dci=dci, d2ci=d2ci, lda0=self.lda0, lambda_dev=self.lambda_dev, s0=self.s0, mu=self.mu, nu=self.nu, rho=self.rho, tau=self.tau, eta=self.eta, beta=self.beta, miter=self.miter, niter=self.niter, Xtol=self.Xtol, Ktol=self.Ktol, Ftol=self.Ftol, lbfgs=self.lbfgs, lbfgs_zeta=self.lbfgs_zeta, float_dtype=self.float_dtype, verbosity=self.verbosity)
+        self.problem = pyipm.IPM(x0=self.x0, x_dev=self.x_dev, f=f, df=df, d2f=d2f, ce=ce, dce=dce, d2ce=d2ce, ci=ci, 
+                                 dci=dci, d2ci=d2ci, lda0=self.lda0, lambda_dev=self.lambda_dev, s0=self.s0, mu=self.mu, 
+                                 nu=self.nu, rho=self.rho, tau=self.tau, eta=self.eta, beta=self.beta, miter=self.miter, 
+                                 niter=self.niter, Xtol=self.Xtol, Ktol=self.Ktol, Ftol=self.Ftol, lbfgs=self.lbfgs, 
+                                 lbfgs_zeta=self.lbfgs_zeta, float_dtype=self.float_dtype, verbosity=self.verbosity)
         # compilation will occur on the first call of self.solve()
         
-
     def solve(self, x0=None, **kwargs):
         """ Find a feasible local minimum using an interior-point algorithm.
 
@@ -205,10 +209,6 @@ class IPMSolver(BaseSolver):
             x0 = self.x0
         self.x, self.s, self.lda, self.ftrain, self.kkt = self.problem.solve(x0=x0)
         return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
-
-
-
-
 
 
 class LBFGSSolver(BaseSolver):
@@ -269,7 +269,6 @@ class LBFGSSolver(BaseSolver):
 
         self.initialized = True
 
-
     def solve(self, x0=None, **kwargs):
         """ Find a feasible local minimum using an interior-point algorithm.
 
@@ -287,13 +286,13 @@ class LBFGSSolver(BaseSolver):
         """
         if x0 is None:
             x0 = self.x0
-        self.x, self.ftrain, _ = fmin_l_bfgs_b(func=lambda x: self.train_model.cost(x.astype(self.float_dtype)).astype(np.float64), x0=x0, fprime=lambda x: self.train_model.grad(x.astype(self.float_dtype)).astype(np.float64), bounds=self.bounds, m=self.lbfgs, factr=self.factr, pgtol=self.pgtol, epsilon=self.epsilon, iprint=self.iprint, disp=self.disp, maxfun=self.maxfun, maxiter=self.maxiter, maxls=self.maxls)
+        self.x, self.ftrain, _ = fmin_l_bfgs_b(
+            func=lambda x: self.train_model.cost(x.astype(self.float_dtype)).astype(np.float64), x0=x0, 
+            fprime=lambda x: self.train_model.grad(x.astype(self.float_dtype)).astype(np.float64), bounds=self.bounds, 
+            m=self.lbfgs, factr=self.factr, pgtol=self.pgtol, epsilon=self.epsilon, iprint=self.iprint, disp=self.disp, 
+            maxfun=self.maxfun, maxiter=self.maxiter, maxls=self.maxls
+        )
         return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
-        
-
-
-
-
 
         
 # regularization solvers
@@ -348,7 +347,6 @@ class BaseSearch(object):
 
         self.initialized = True
         
-
     def init_storage(self, hyperparams, **kwargs):
         """ Initialize/reinitialize empty storage arrays to store weights,
             hyperparameters, and objective function evaluations on the
@@ -366,7 +364,6 @@ class BaseSearch(object):
 
         self.storage_initialized = True
 
-
     def update_storage(self, x, hyperparams, fcv, **kwargs):
         """ Update the storage arrays.
 
@@ -379,9 +376,11 @@ class BaseSearch(object):
 
         """
         self.x_storage = np.concatenate([self.x_storage, x.reshape((1, x.size))], axis=0)
-        self.hyperparam_storage = np.concatenate([self.hyperparam_storage, hyperparams.reshape((1, hyperparams.size))], axis=0)
-        self.hyperparam_norm_storage = np.concatenate([self.hyperparam_norm_storage, np.linalg.norm(hyperparams).reshape((1,1))], axis=0)
-        self.fcv_storage = np.concatenate([self.fcv_storage, np.array([fcv]).reshape((1,1))], axis=0)
+        self.hyperparam_storage = np.concatenate([self.hyperparam_storage, hyperparams.reshape((1, hyperparams.size))], 
+                                                 axis=0)
+        self.hyperparam_norm_storage = np.concatenate([self.hyperparam_norm_storage, 
+                                                       np.linalg.norm(hyperparams).reshape((1, 1))], axis=0)
+        self.fcv_storage = np.concatenate([self.fcv_storage, np.array([fcv]).reshape((1, 1))], axis=0)
 
         if self.max_storage is not None and self.fcv_storage.size > self.max_storage:
             index = np.argmax(self.fcv_storage)
@@ -389,7 +388,6 @@ class BaseSearch(object):
             self.hyperparam_storage = np.delete(self.hyperparam_storage, index, axis=0)
             self.hyperparam_norm_storage = np.delete(self.hyperparam_norm_storage, index, axis=0)
             self.fcv_storage = np.delete(self.fcv_storage, index, axis=0)
-
 
     def clear_storage(self, **kwargs):
         """ Clear the storage arrays and set to size zero.
@@ -403,7 +401,6 @@ class BaseSearch(object):
         self.fcv_storage = np.array([])
         
         self.storage_initialized = False
-
 
     def init_weights_to_closest(self, parent=dict(), **kwargs):
         """ Initialize weights to the solution of the closest set of
@@ -440,7 +437,8 @@ class BaseSearch(object):
                 index = np.where(self.hyperparam_norm_storage <= hyperparam_norm)[0]
                 if len(index) == 0:
                     index = np.where(self.hyperparam_norm_storage > hyperparam_norm)[0]
-                r = np.linalg.norm(self.hyperparam_storage[index,:] - np.tile(hyperparams.reshape((1, hyperparams.size)), (len(index), 1)), axis=1)
+                r = np.linalg.norm(self.hyperparam_storage[index,:] - 
+                                   np.tile(hyperparams.reshape((1, hyperparams.size)), (len(index), 1)), axis=1)
                 index2 = np.argmin(r)
                 return np.copy(self.x_storage[index[index2],:].ravel())
             elif round_type.strip().lower() == "ceil":
@@ -448,16 +446,18 @@ class BaseSearch(object):
                 index = np.where(self.hyperparam_norm_storage >= hyperparam_norm)[0]
                 if len(index) == 0:
                     index = np.where(self.hyperparam_norm_storage < hyperparam_norm)[0]
-                r = np.linalg.norm(self.hyperparam_storage[index,:] - np.tile(hyperparams.reshape((1, hyperparams.size)), (len(index), 1)), axis=1)
+                r = np.linalg.norm(self.hyperparam_storage[index,:] - 
+                                   np.tile(hyperparams.reshape((1, hyperparams.size)), (len(index), 1)), axis=1)
                 index2 = np.argmin(r)
                 return np.copy(self.x_storage[index[index2],:].ravel())
             else:
-                r = np.linalg.norm(self.hyperparam_storage - np.tile(hyperparams.reshape((1, hyperparams.size)), (self.hyperparam_norm_storage.shape[0], 1)), axis=1)
+                r = np.linalg.norm(self.hyperparam_storage - 
+                                   np.tile(hyperparams.reshape((1, hyperparams.size)), 
+                                           (self.hyperparam_norm_storage.shape[0], 1)), axis=1)
                 index = np.argmin(r)
                 return np.copy(self.x_storage[index,:].ravel())
         else:
             return np.copy(self.x)
-
 
     def init_solver(self, **kwargs):
         """ If the search needs to optimize a subproblem, this function
@@ -544,7 +544,6 @@ class GridSearch(BaseSearch):
 
         self.complete = False
 
-
     def solve(self, x0=None, **kwargs):
         """ Solve for the hyperparameter settings that minimize the
             objective/cost function on the cross-validation set.
@@ -578,7 +577,7 @@ class GridSearch(BaseSearch):
             self.hypergrid_index = np.zeros((self.hyper_manager.red_index[-1],), dtype=np.uint32)
 
         if self.verbosity >= 0:
-            print "Starting grid search..."
+            print("Starting grid search...")
 
         # begin optimization
         while not self.complete:
@@ -596,14 +595,12 @@ class GridSearch(BaseSearch):
             feasible = self.hyper_manager.check_feasibility(**kwargs)
 
             if self.verbosity >= 2:
-                print "hyperparameters:"
-                print self.hyper_manager.build_red_vector_from_state(**kwargs)
+                print("Hyperparameters:\n{}".format(self.hyper_manager.build_red_vector_from_state(**kwargs)))
                 if feasible:
-                    print "hyperparameters are feasible."
+                    print("Hyperparameters are feasible.")
                 else:
-                    print "hyperparameters are infeasible."
+                    print("Hyperparameters are infeasible.")
 
-            #print self.hyperparams
             if feasible:                
                 self.xtmp, self.ftmp = self.solver.solve(x0, **kwargs)
                 self.fnew = self.cv_model.cost(self.xtmp)
@@ -614,11 +611,10 @@ class GridSearch(BaseSearch):
                     self.x = np.copy(self.xtmp)
                 
                 if self.verbosity >= 1:
-                    print "fnew = " + str(self.fnew) + ", fcv (best) = " + str(self.fcv)
+                    print('fnew = {}, fcv (best) = {}'.format(self.fnew, self.fcv))
 
                 if self.verbosity >= 3:
-                    print "weights:"
-                    print self.xtmp
+                    print('weights:\n{}'.format(self.xtmp))
                 
                 # update storage, if applicable
                 if not self.forget:
@@ -636,16 +632,13 @@ class GridSearch(BaseSearch):
                     break
 
             if self.verbosity >= 2:
-                print ""
+                print("")
 
         if self.verbosity >= 0:
             if self.complete:
-                print "Grid search complete."
+                print("Grid search complete.")
 
-        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
-
-        
-        
+        return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))       
 
 
 class BayesSearch(BaseSearch):
@@ -761,17 +754,22 @@ class BayesSearch(BaseSearch):
 
         # kernel function
         self.kernel = kwargs.get('bayes_search_kernel', kwargs.get('kernel', None))
-        self.kernel_variance_fixed = kwargs.get('bayes_search_kernel_variance_fixed', kwargs.get('kernel_variance_fixed', None))
-        self.kernel_lengthscale_fixed = kwargs.get('bayes_search_kernel_lengthscale_fixed', kwargs.get('kernel_lengthscale_fixed', None))
+        self.kernel_variance_fixed = kwargs.get('bayes_search_kernel_variance_fixed', 
+                                                kwargs.get('kernel_variance_fixed', None))
+        self.kernel_lengthscale_fixed = kwargs.get('bayes_search_kernel_lengthscale_fixed', 
+                                                   kwargs.get('kernel_lengthscale_fixed', None))
 
         # "white noise" added to Gaussian kernel (scaled identity matrix)
-        self.acquisition_jitter = kwargs.get('bayes_search_acquisition_jitter', kwargs.get('acquisition_jitter', np.sqrt(np.finfo(parent.get('float_dtype', np.float64)).eps)))
+        self.acquisition_jitter = kwargs.get('bayes_search_acquisition_jitter', 
+                                             kwargs.get('acquisition_jitter', 
+                                                        np.sqrt(np.finfo(parent.get('float_dtype', np.float64)).eps)))
 
         # Bayesian model type (keep this as a Gaussian process 'GP' under most circumstances)
         self.model_type = kwargs.get('bayes_search_model_type', kwargs.get('model_type', 'GP'))
 
         # how many iterations to skip between updates of the Gaussian process parameters
-        self.model_update_interval = kwargs.get('bayes_search_model_update_interval', kwargs.get('model_update_interval', 1))
+        self.model_update_interval = kwargs.get('bayes_search_model_update_interval', 
+                                                kwargs.get('model_update_interval', 1))
 
         # get and initialize solver
         self.solver = kwargs.get('bayes_search_solver', kwargs.get('solver', None))
@@ -792,7 +790,6 @@ class BayesSearch(BaseSearch):
 
         self.converged = False
         self.resume = False
-
 
     def init_points(self, N=4, **kwargs):
         """ Choose points on the domain of the hyperparameters to initialize
@@ -827,7 +824,6 @@ class BayesSearch(BaseSearch):
 
         return hyperparams_red_init.astype(self.float_dtype)
 
-
     def hidden_cost(self, hyperparams_red, **kwargs):
         """ Compute the value of the "hidden" objective/cost function. The
             training model is solved for a given set of hyperparameters and the
@@ -852,7 +848,7 @@ class BayesSearch(BaseSearch):
         hyperparams = self.hyper_manager.build_vector_from_state(**kwargs)
 
         if self.verbosity >= 2:
-            print hyperparams_red
+            print(hyperparams_red)
                     
         # solving the subproblem
         self.xtmp, self.ftmp = self.solver.solve(x0, **kwargs)
@@ -865,11 +861,10 @@ class BayesSearch(BaseSearch):
             self.x = np.copy(self.xtmp.astype(self.float_dtype))
 
         if self.verbosity >= 1:
-            print "fnew = " + str(self.fnew) + ", fcv (best) = " + str(self.fcv)        
+            print('fnew = {}, fcv (best) = {}'.format(self.fnew, self.fcv))
 
         if self.verbosity >= 3:
-            print "weights:"
-            print self.xtmp
+            print('weights:\n{}'.format(self.xtmp))
     
         # update storage arrays
         if not self.forget:
@@ -877,7 +872,6 @@ class BayesSearch(BaseSearch):
 
         # return cost of hidden objective function
         return self.fnew.reshape((1, 1)).astype(self.float_dtype)
-
     
     def solve(self, x0=None, **kwargs):
         """ Find a feasible set of hyperparameters that minimize the objective
@@ -912,7 +906,8 @@ class BayesSearch(BaseSearch):
             if not self.forget and self.storage_initialized and self.fcv_storage.size > 0:
                 hyperparams_red_init = np.zeros((self.fcv_storage.size, self.hyper_manager.red_index[-1]))
                 for i in range(self.fcv_storage.size):
-                    hyperparams_red_init[i, :] = self.hyper_manager.build_red_vector_from_vector(self.hyperparam_storage[i, :], **kwargs)
+                    hyperparams_red_init[i, :] = \
+                        self.hyper_manager.build_red_vector_from_vector(self.hyperparam_storage[i, :], **kwargs)
                 fcv_init = np.copy(self.fcv_storage.reshape((self.fcv_storage.size, 1)))
             else:
                 hyperparams_red_init = self.init_points(N=self.N_init, **kwargs)
@@ -925,9 +920,15 @@ class BayesSearch(BaseSearch):
 
             # initialize Bayesian optimization solver and populate the distribution
             if self.verbosity >= 0:
-                print "Initializing Bayesian optimization."
+                print("Initializing Bayesian optimization.")
 
-            self.bayes_opt = GPyOpt.methods.BayesianOptimization(f=self.hidden_cost, domain=self.hyper_manager.domain_f, constrains=self.hyper_manager.cons_f, X=hyperparams_red_init, Y=fcv_init, acquisition_type=self.acquisition_type, exact_feval=self.exact_feval, normalize_Y=self.normalize_Y, acquisition_jitter=self.acquisition_jitter, model_type=self.model_type, acquisition_weight=self.exploration_weight, user_def_dist=self.hyper_manager.sampler.samp_func, model_update_interval=self.model_update_interval)
+            self.bayes_opt = GPyOpt.methods.BayesianOptimization(
+                f=self.hidden_cost, domain=self.hyper_manager.domain_f, constrains=self.hyper_manager.cons_f, 
+                X=hyperparams_red_init, Y=fcv_init, acquisition_type=self.acquisition_type, 
+                exact_feval=self.exact_feval, normalize_Y=self.normalize_Y, acquisition_jitter=self.acquisition_jitter, 
+                model_type=self.model_type, acquisition_weight=self.exploration_weight, 
+                user_def_dist=self.hyper_manager.sampler.samp_func, model_update_interval=self.model_update_interval
+            )
 
             # assume that if solve is called again, it is to resume the optimization
             self.resume = True
@@ -943,26 +944,24 @@ class BayesSearch(BaseSearch):
             self.bayes_opt.model.kernel.lengthscale.constrain_fixed(self.kernel_lengthscale_fixed)
 
         if self.verbosity >= 2:
-            print "initial process parameters:"
-            print self.bayes_opt.model.model
+            print('Initial process parameters:\n{}'.format(self.bayes_opt.model.model))
 
         if self.verbosity >= 0:
-            print "Starting Bayesian optimization..."
+            print("Starting Bayesian optimization...")
 
         # optimization loop
         for its in range(1, self.maxits+1):
             self.bayes_opt.run_optimization(max_iter=1, eps=self.epsilon, verbosity=True)
 
             if self.verbosity >= 1:
-                print "Bayes search iteration " + str(its)
+                print('Bayes search iteration {}'.format(its))
             
             if self.verbosity >= 2:
-                print "process parameters:"
-                print self.bayes_opt.model.model
+                print('Process parameters:\n{}'.format(self.bayes_opt.model.model))
                 self.bayes_opt._print_convergence()
 
             if self.verbosity >= 2:
-                print ""
+                print("")
 
             if not self.bayes_opt.initial_iter and self.bayes_opt._distance_last_evaluations() < self.epsilon:
                 self.converged = True
@@ -970,15 +969,12 @@ class BayesSearch(BaseSearch):
 
         if self.verbosity >= 0:
             if self.converged:
-                print "Bayesian optimization converged to desired precision."
+                print("Bayesian optimization converged to desired precision.")
             else:
-                print "Maximum iterations exceeded in Bayesian optimization."
+                print("Maximum iterations exceeded in Bayesian optimization.")
 
         return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
-
     
-    
-
 
 class NNGlobalSearch(BaseSearch):
     """ NNGlobalSearch (class)
@@ -1037,7 +1033,8 @@ class NNGlobalSearch(BaseSearch):
         self.K = theano.function(inputs=[self.train_model.x_dev], outputs=self.K)
 
         # set-up regularization manager
-        self.rtype = kwargs.get('nn_global_search_rtype', kwargs.get('rtype', parent.get('rtype', self.train_model.rtype)))
+        self.rtype = kwargs.get('nn_global_search_rtype', kwargs.get('rtype', 
+                                                                     parent.get('rtype', self.train_model.rtype)))
 
         # get and initialize subproblem solver
         self.solver = kwargs.get('nn_global_search_solver', kwargs.get('solver', None))
@@ -1057,7 +1054,6 @@ class NNGlobalSearch(BaseSearch):
         self.verbosity = kwargs.get('nn_global_search_verbosity', kwargs.get('verbosity', 1))
 
         self.complete = False
-
 
     def solve(self, x0=None, **kwargs):
         """ Solve for a globally optimal approximation of the weights.
@@ -1095,18 +1091,18 @@ class NNGlobalSearch(BaseSearch):
         self.signal = 0
 
         if self.verbosity >= 0:
-            print "Starting globally optimal approximation algorithm..."
+            print("Starting globally optimal approximation algorithm...")
 
         # begin optimization
         for its in range(1, self.maxiter+1):
             if self.verbosity >= 1:
-                print "Global opt approx iteration " + str(its)
+                print('Global opt approx iteration {}'.format(its))
             if self.state is not None:
                 # assign nuclear-norm regularization parameter
                 self.train_model.assign_reg_params("nuclear-norm", np.array([self.state]), **kwargs)
 
                 if self.verbosity >= 2:
-                    print "nuclear-norm reg. param. = " + str(self.state)
+                    print('Nuclear-norm reg. param. = {}'.format(self.state))
 
                 # solve the subproblem
                 self.x, self.ftrain = self.solver.solve(x0, **kwargs)
@@ -1117,14 +1113,13 @@ class NNGlobalSearch(BaseSearch):
                 wmax = np.max(np.abs(w))
 
                 if self.verbosity >= 1:
-                    print "max. eval. = " + str(wmax)
-                #print "state = " + str(self.state) + ", wmax = " + str(wmax)
+                    print('Max. eval. = {}'.format(wmax))
 
                 # adjust the regularization, if necessary
                 if self.state < wmax:
                     # regularization is too small, increase
                     if self.verbosity >= 2:
-                        print "nuclear-norm penalty too small, increase reg. param."
+                        print("Nuclear-norm penalty too small, increase reg. param.")
 
                     tmp = self.state + self.update_ratio*(wmax - self.state)
                     if tmp > bounds[1]:
@@ -1137,7 +1132,7 @@ class NNGlobalSearch(BaseSearch):
                 elif self.state > wmax + self.ctol:
                     # regularization is too big, decrease
                     if self.verbosity >= 2:
-                        print "nuclear-norm penalty too large, decrease reg. param."
+                        print("Nuclear-norm penalty too large, decrease reg. param.")
 
                     if self.state < self.min_feas:
                         # solution is best found so far
@@ -1152,7 +1147,7 @@ class NNGlobalSearch(BaseSearch):
                         break
 
                     if self.verbosity >= 1:
-                        print "fnew = " + str(self.ftrain) + ", ftrain (best) = " + str(self.fbest)
+                        print('fnew = {}, ftrain (best) = {}'.format(self.ftrain, self.fbest))
                 else:
                     # feasible solution found
                     self.xbest = np.copy(self.x)
@@ -1166,15 +1161,11 @@ class NNGlobalSearch(BaseSearch):
 
         if self.verbosity >= 0:
             if self.complete:
-                print "Feasible globally optimal approximation found."
+                print("Feasible globally optimal approximation found.")
             else:
-                print "Maximum number of iterations exceeded in globally optimal approximation algorithm."
+                print("Maximum number of iterations exceeded in globally optimal approximation algorithm.")
 
         return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
-
-
-    
-
 
 
 # global optimization heuristics
@@ -1248,7 +1239,8 @@ class MultiInitSearch(BaseSolver):
         self.x_dist = kwargs.get('multi_init_search_x_dist', kwargs.get('x_dist', self.uniform_dist))
 
         # custom sampling function
-        self.custom_sampling_function = kwargs.get('multi_init_search_custom_sampling_function', kwargs.get('custom_sampling_function', self.monte_carlo))
+        self.custom_sampling_function = kwargs.get('multi_init_search_custom_sampling_function', 
+                                                   kwargs.get('custom_sampling_function', self.monte_carlo))
 
         # get subproblem solver and initialize
         self.solver = kwargs.get('multi_init_search_solver', kwargs.get('solver', None))
@@ -1258,8 +1250,7 @@ class MultiInitSearch(BaseSolver):
         # verbosity level
         self.verbosity = kwargs.get('multi_init_search_verbosity', kwargs.get('verbosity', 1))
 
-        self.converged = False
-            
+        self.converged = False 
 
     def uniform_dist(self, n, **kwargs):
         """ Draw a random weight vector from a unform distribution on the
@@ -1275,7 +1266,6 @@ class MultiInitSearch(BaseSolver):
         """
         return 0.5 * (2.0*np.random.rand(n,)-1.0)
         
-        
     def relative_origin(self, xtmp, **kwargs):
         """ Set the current weight vector  as the origin.
 
@@ -1288,7 +1278,6 @@ class MultiInitSearch(BaseSolver):
         """
         return xtmp
 
-
     def monte_carlo(self, xtmp, **kwargs):
         """ Choose a random initialization about an origin from a probability
             distribution.
@@ -1300,8 +1289,7 @@ class MultiInitSearch(BaseSolver):
                 x0: new initialization of the weight vector.
 
         """
-        return self.x_origin(xtmp=xtmp, **kwargs) + self.x_length * self.x_dist(xtmp.size, **kwargs)
-    
+        return self.x_origin(xtmp=xtmp, **kwargs) + self.x_length * self.x_dist(xtmp.size, **kwargs)   
 
     def solve(self, x0=None, **kwargs):
         """ Find a possible feasible global minimizer of the problem using
@@ -1324,11 +1312,11 @@ class MultiInitSearch(BaseSolver):
         self.ftrain = self.train_model.cost(x0)
 
         if self.verbosity >= 0:
-            print "Starting global optimization heuristic from multiple initializations..."
+            print("Starting global optimization heuristic from multiple initializations...")
 
         for i in range(1, self.max_repeats+1):
             if self.verbosity >= 1:
-                print "Global opt trial " + str(i)
+                print('Global opt trial {}'.format(i))
             
             xtmp, ftmp = self.solver.solve(x0, **kwargs)
             
@@ -1340,7 +1328,7 @@ class MultiInitSearch(BaseSolver):
                 self.fails += 1
 
             if self.verbosity >= 1:
-                print "# of consecutive failures = " + str(self.fails)
+                print('# of consecutive failures = {}'.format(self.fails))
 
             if self.fails >= self.max_fails:
                 self.converged = True
@@ -1350,12 +1338,8 @@ class MultiInitSearch(BaseSolver):
 
         if self.verbosity >= 0:
             if self.converged:
-                print "possible global minimum found; maximum # of consecutive failures exceeded."
+                print("Possible global minimum found; maximum # of consecutive failures exceeded.")
             else:
-                print "maximum number of iterations exceeded."
+                print("Maximum number of iterations exceeded.")
 
         return (self.x.astype(self.float_dtype), self.ftrain.astype(self.float_dtype))
-
-
-    
-

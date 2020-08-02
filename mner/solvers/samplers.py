@@ -76,7 +76,6 @@ class InvariantRtypeSampling(BaseSampler):
 
         self.initialized = True
 
-
     def samp_func(self, space, num_data, **kwargs):
         """ Generate feasible samples.
 
@@ -92,15 +91,15 @@ class InvariantRtypeSampling(BaseSampler):
         Z_rand = np.zeros((num_data, dim))
         for k in range(dim):
             if space.config_space[k]['type'] == 'continuous':
-                Z_rand[:, k] = np.random.uniform(low=space.config_space[k]['domain'][0], high=space.config_space[k]['domain'][1], size=num_data)
+                Z_rand[:, k] = np.random.uniform(low=space.config_space[k]['domain'][0], 
+                                                 high=space.config_space[k]['domain'][1], size=num_data)
 
         for i, r in enumerate(self.rtype):
             if r in self.apply_to and self.red_dim[i] > 1:
-                Z_rand[:, self.red_index[i]:self.red_index[i+1]] = np.sort(Z_rand[:, self.red_index[i]:self.red_index[i+1]], axis=1)
+                Z_rand[:, self.red_index[i]:self.red_index[i + 1]] = \
+                    np.sort(Z_rand[:, self.red_index[i]:self.red_index[i + 1]], axis=1)
 
         return Z_rand
-
-
 
     
 class SplitSignSampling(BaseSampler):
@@ -143,7 +142,6 @@ class SplitSignSampling(BaseSampler):
         self.red_index = parent.get('red_index', None)
         self.red_dim = parent.get('red_dim', None)
         self.csigns = kwargs.get(self.qualifier + '_csigns', kwargs.get('csigns', None))
-
     
     def samp_func(self, space, num_data, **kwargs):
         """Generate feasible samples.
@@ -166,16 +164,16 @@ class SplitSignSampling(BaseSampler):
         Z_rand = np.zeros((num_data, dim))
         for k in range(dim):
             if space.config_space[k]['type'] == 'continuous':
-                Z_rand[:, k] = np.random.uniform(low=space.config_space[k]['domain'][0], high=space.config_space[k]['domain'][1], size=num_data)
+                Z_rand[:, k] = np.random.uniform(low=space.config_space[k]['domain'][0], \
+                                                 high=space.config_space[k]['domain'][1], size=num_data)
 
         for i, r in enumerate(self.rtype):
             if r == "nuclear-norm" and self.red_dim[i] > 1:
                 ind_pos = np.where(self.csigns > 0)[0]
                 ind_neg = np.where(self.csigns < 0)[0]
                 if ind_pos.size > 1:
-                    Z_rand[:, self.red_index[i]+ind_pos] = np.sort(Z_rand[:, self.red_index[i]+ind_pos], axis=1)
+                    Z_rand[:, self.red_index[i] + ind_pos] = np.sort(Z_rand[:, self.red_index[i] + ind_pos], axis=1)
                 if ind_neg.size > 1:
-                    Z_rand[:, self.red_index[i]+ind_neg] = np.sort(Z_rand[:, self.red_index[i]+ind_neg], axis=1)
+                    Z_rand[:, self.red_index[i] + ind_neg] = np.sort(Z_rand[:, self.red_index[i] + ind_neg], axis=1)
         
-        return Z_rand
-    
+        return Z_rand 
